@@ -31,40 +31,44 @@ void main() async {
   );
 }
 
-class MilkNoteApp extends StatelessWidget {
+class MilkNoteApp extends StatefulWidget {
   const MilkNoteApp({super.key});
+  @override
+  State<MilkNoteApp> createState() => _MilkNoteAppState();
+}
+
+class _MilkNoteAppState extends State<MilkNoteApp> {
+  late final GoRouter _router;
 
   @override
-  Widget build(BuildContext context) {
-    final auth = context.watch<AuthProvider>();
+  void initState() {
+    super.initState();
+    final auth = Provider.of<AuthProvider>(context, listen: false);
 
-    if (auth.isLoading) {
-      return const MaterialApp(
-        home: Scaffold(body: Center(child: CircularProgressIndicator())),
-      );
-    }
-
-    final router = GoRouter(
+    _router = GoRouter(
       initialLocation: '/login',
-      // Redirect based on auth state — reacts to logout/login changes
+      refreshListenable: auth,
       redirect: (context, state) {
-        final loggedIn = auth.isLoggedIn;
-        final onLogin = state.matchedLocation == '/login' ||
-            state.matchedLocation == '/signup';
+        // Wait until auth is loaded
+        if (auth.isLoading) return null;
 
-        if (!loggedIn && !onLogin) return '/login';
-        if (loggedIn && state.matchedLocation == '/login') {
+        final loggedIn = auth.isLoggedIn;
+        final loc = state.matchedLocation;
+        final onPublic = loc == '/login' || loc == '/signup';
+
+        // Not logged in — send to login
+        if (!loggedIn && !onPublic) return '/login';
+
+        // Logged in — send away from login
+        if (loggedIn && loc == '/login') {
           return auth.isCowPerson ? '/cow-monthly' : '/add-milk';
         }
+
         return null;
       },
-      refreshListenable: auth, // router refreshes when auth state changes
       routes: [
-        // Public routes
         GoRoute(path: '/login', builder: (_, __) => LoginScreen()),
         GoRoute(path: '/signup', builder: (_, __) => SignupScreen()),
-
-        // Edit milk - full screen no drawer
         GoRoute(
           path: '/edit-milk',
           builder: (_, state) {
@@ -75,11 +79,11 @@ class MilkNoteApp extends StatelessWidget {
             );
           },
         ),
-
-        // Shell with drawer
         ShellRoute(
-          builder: (context, state, child) =>
-              HomeScreen(child: child, isCowPerson: auth.isCowPerson),
+          builder: (context, state, child) => HomeScreen(
+            child: child,
+            isCowPerson: context.read<AuthProvider>().isCowPerson,
+          ),
           routes: [
             GoRoute(path: '/add-milk', builder: (_, __) => AddMilkScreen()),
             GoRoute(
@@ -99,11 +103,30 @@ class MilkNoteApp extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  @override
+  void dispose() {
+    _router.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+
+    if (auth.isLoading) {
+      return const MaterialApp(
+        home: Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        ),
+      );
+    }
 
     return MaterialApp.router(
-      title: 'MilkNote',
+      title: 'Milk Note',
       theme: appTheme,
-      routerConfig: router,
+      routerConfig: _router,
       debugShowCheckedModeBanner: false,
     );
   }

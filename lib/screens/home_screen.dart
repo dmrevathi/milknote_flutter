@@ -67,7 +67,7 @@ class _AppDrawer extends StatelessWidget {
                 children: const [
                   Text('🥛', style: TextStyle(fontSize: 36)),
                   SizedBox(height: 8),
-                  Text('MilkNote',
+                  Text('Milk Note',
                       style: TextStyle(
                           color: Colors.white,
                           fontSize: 22,
