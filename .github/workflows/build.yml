@@ -2,9 +2,9 @@ name: Build Flutter
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [main, master]
   pull_request:
-    branches: [ main, master ]
+    branches: [main, master]
   workflow_dispatch:
 
 env:
@@ -22,8 +22,8 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.41.4'
-          channel: 'stable'
+          flutter-version: "3.41.4"
+          channel: "stable"
 
       - name: Get dependencies
         run: flutter pub get
@@ -40,8 +40,8 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: build/web
 
-  # ── Android APK build ──
-  build_apk:
+  # ── Android signed release AAB (Play Store) ──
+  build_release:
     runs-on: ubuntu-latest
 
     steps:
@@ -49,13 +49,13 @@ jobs:
 
       - uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
-          java-version: '17'
+          distribution: "zulu"
+          java-version: "17"
 
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.41.4'
-          channel: 'stable'
+          flutter-version: "3.41.4"
+          channel: "stable"
 
       - name: Get dependencies
         run: flutter pub get
@@ -68,12 +68,58 @@ jobs:
           MANIFEST="android/app/src/main/AndroidManifest.xml"
           sed -i 's|</application>|    <meta-data\n            android:name="com.google.android.gms.ads.APPLICATION_ID"\n            android:value="ca-app-pub-7800736979145298~5787058699"/>\n    </application>|' $MANIFEST
 
-      - name: Build debug APK
-        run: flutter build apk --debug
+      - name: Decode keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/milknote.jks
 
-      - name: Upload APK
+      - name: Create key.properties
+        run: |
+          cat > android/key.properties << 'KEYEOF'
+          storePassword=${{ secrets.STORE_PASSWORD }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          storeFile=milknote.jks
+          KEYEOF
+
+      - name: Configure signing in build.gradle
+        run: |
+          GRADLE="android/app/build.gradle"
+          # Add signingConfigs before buildTypes
+          sed -i '/buildTypes {/i\
+              signingConfigs {\
+                  release {\
+                      keyAlias keystoreProperties["keyAlias"]\
+                      keyPassword keystoreProperties["keyPassword"]\
+                      storeFile file(keystoreProperties["storeFile"])\
+                      storePassword keystoreProperties["storePassword"]\
+                  }\
+              }' $GRADLE
+          # Load key.properties at top of android block
+          sed -i '/^android {/i\
+          def keystoreProperties = new Properties()\
+          def keystorePropertiesFile = rootProject.file("key.properties")\
+          if (keystorePropertiesFile.exists()) {\
+              keystoreProperties.load(new FileInputStream(keystorePropertiesFile))\
+          }' $GRADLE
+          # Set release signing config
+          sed -i 's/signingConfig signingConfigs.debug/signingConfig signingConfigs.release/' $GRADLE
+
+      - name: Build release AAB
+        run: flutter build appbundle --release
+
+      - name: Build release APK
+        run: flutter build apk --release
+
+      - name: Upload AAB (Play Store)
         uses: actions/upload-artifact@v4
         with:
-          name: milknote-debug
-          path: build/app/outputs/flutter-apk/app-debug.apk
-          retention-days: 7
+          name: milknote-release-aab
+          path: build/app/outputs/bundle/release/app-release.aab
+          retention-days: 30
+
+      - name: Upload APK (Direct install)
+        uses: actions/upload-artifact@v4
+        with:
+          name: milknote-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 30
