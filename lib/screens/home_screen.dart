@@ -1,10 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import '../services/auth_provider.dart';
 import '../theme.dart';
 
 final GlobalKey<ScaffoldState> rootScaffoldKey = GlobalKey<ScaffoldState>();
+
+// Play Store link — update once published
+const String _playStoreUrl =
+    'https://play.google.com/store/apps/details?id=com.milknote.app';
+
+const String _shareMessage = '🥛 *MilkNote App*\n\n'
+    'பால் கணக்கு வைக்க எளிதான ஆப்!\n'
+    'உங்கள் தினசரி பால் கணக்கை டிஜிட்டலாக வைத்திருங்கள்.\n\n'
+    '👉 Download here:\n$_playStoreUrl\n\n'
+    'சேவைக்கு: 8825401886';
 
 class HomeScreen extends StatelessWidget {
   final Widget child;
@@ -35,6 +46,14 @@ class _AppDrawer extends StatelessWidget {
       context.go(route);
     }
 
+    void shareApp() {
+      rootScaffoldKey.currentState?.closeDrawer();
+      Share.share(
+        _shareMessage,
+        subject: 'MilkNote - பால் கணக்கு ஆப்',
+      );
+    }
+
     return Drawer(
       child: Column(
         children: [
@@ -49,8 +68,10 @@ class _AppDrawer extends StatelessWidget {
                   Text('🥛', style: TextStyle(fontSize: 36)),
                   SizedBox(height: 8),
                   Text('MilkNote',
-                      style: TextStyle(color: Colors.white,
-                          fontSize: 22, fontWeight: FontWeight.w800)),
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800)),
                 ],
               ),
             ),
@@ -58,35 +79,60 @@ class _AppDrawer extends StatelessWidget {
 
           // Milk person menus
           if (!isCowPerson) ...[
-            _DrawerItem(icon: Icons.add_circle_outline,
-                label: 'பால் கணக்கு சேர்', onTap: () => go('/add-milk')),
-            _DrawerItem(icon: Icons.today,
-                label: 'இன்றைய பால் கணக்கு', onTap: () => go('/daily-report')),
-            _DrawerItem(icon: Icons.calendar_month,
-                label: 'மாதாந்திர பால் கணக்கு', onTap: () => go('/monthly-report')),
-            _DrawerItem(icon: Icons.assessment,
-                label: 'முழு பால் கணக்கு', onTap: () => go('/full-report')),
-            _DrawerItem(icon: Icons.person_add,
-                label: 'மாட்டுக்காரரை பதிவு செய்', onTap: () => go('/register-cow')),
-            _DrawerItem(icon: Icons.link,
-                label: 'மாட்டுக்காரரை இணை', onTap: () => go('/connect-cow')),
+            _DrawerItem(
+                icon: Icons.add_circle_outline,
+                label: 'பால் கணக்கு சேர்',
+                onTap: () => go('/add-milk')),
+            _DrawerItem(
+                icon: Icons.today,
+                label: 'இன்றைய பால் கணக்கு',
+                onTap: () => go('/daily-report')),
+            _DrawerItem(
+                icon: Icons.calendar_month,
+                label: 'மாதாந்திர பால் கணக்கு',
+                onTap: () => go('/monthly-report')),
+            _DrawerItem(
+                icon: Icons.assessment,
+                label: 'முழு பால் கணக்கு',
+                onTap: () => go('/full-report')),
+            _DrawerItem(
+                icon: Icons.person_add,
+                label: 'மாட்டுக்காரரை பதிவு செய்',
+                onTap: () => go('/register-cow')),
+            _DrawerItem(
+                icon: Icons.link,
+                label: 'மாட்டுக்காரரை இணை',
+                onTap: () => go('/connect-cow')),
           ],
 
           // Cow person menus
           if (isCowPerson) ...[
-            _DrawerItem(icon: Icons.bar_chart,
-                label: 'மாதாந்திர பால் கணக்கு', onTap: () => go('/cow-monthly')),
+            _DrawerItem(
+                icon: Icons.bar_chart,
+                label: 'மாதாந்திர பால் கணக்கு',
+                onTap: () => go('/cow-monthly')),
           ],
+
+          const Divider(),
+
+          // Share app — visible to all roles
+          _DrawerItem(
+            icon: Icons.share,
+            label: 'ஆப்பை பகிர்',
+            color: Colors.blue.shade700,
+            onTap: shareApp,
+          ),
 
           const Spacer(),
           const Divider(),
+
+          // Logout
           _DrawerItem(
             icon: Icons.logout,
             label: 'வெளியேறு',
             color: kRed,
             onTap: () async {
               rootScaffoldKey.currentState?.closeDrawer();
-              // Show confirmation dialog
               final confirm = await showDialog<bool>(
                 context: context,
                 builder: (_) => AlertDialog(
@@ -95,7 +141,8 @@ class _AppDrawer extends StatelessWidget {
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(context, false),
-                      child: const Text('ரத்து', style: TextStyle(color: Colors.grey)),
+                      child: const Text('ரத்து',
+                          style: TextStyle(color: Colors.grey)),
                     ),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(backgroundColor: kRed),
@@ -125,8 +172,10 @@ class _DrawerItem extends StatelessWidget {
   final Color? color;
 
   const _DrawerItem({
-    required this.icon, required this.label,
-    required this.onTap, this.color,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.color,
   });
 
   @override
@@ -134,8 +183,8 @@ class _DrawerItem extends StatelessWidget {
     return ListTile(
       leading: Icon(icon, color: color ?? kGreen),
       title: Text(label,
-          style: TextStyle(color: color ?? Colors.black87,
-              fontWeight: FontWeight.w500)),
+          style: TextStyle(
+              color: color ?? Colors.black87, fontWeight: FontWeight.w500)),
       onTap: onTap,
     );
   }

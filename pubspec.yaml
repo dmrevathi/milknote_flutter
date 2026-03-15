@@ -1,10 +1,10 @@
 name: milknote
 description: Milk record tracking app for dairy farmers
-publish_to: 'none'
+publish_to: "none"
 version: 1.0.14+14
 
 environment:
-  sdk: '>=3.11.0 <4.0.0'
+  sdk: ">=3.11.0 <4.0.0"
 
 dependencies:
   flutter:
@@ -16,6 +16,7 @@ dependencies:
   provider: ^6.1.0
   intl: ^0.20.0
   cupertino_icons: ^1.0.8
+  share_plus: ^10.0.0
   google_mobile_ads: ^5.1.0
   sendotp_flutter_sdk: ^0.0.2
   package_info_plus: ^8.0.0
