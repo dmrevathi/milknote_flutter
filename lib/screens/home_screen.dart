@@ -130,31 +130,36 @@ class _AppDrawer extends StatelessWidget {
             icon: Icons.logout,
             label: t['sideBar']?['logout'] ?? 'Logout',
             color: kRed,
-            onTap: () async {
+            onTap: () {
+              // Close drawer first, then show dialog using root scaffold context
               rootScaffoldKey.currentState?.closeDrawer();
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder: (_) => AlertDialog(
-                  title: Text(t['logout']?['title'] ?? 'Logout'),
-                  content: Text(t['logout']?['confirmationText'] ??
-                      'Are you sure you want to logout?'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: Text(t['monthlyCalc']?['cancel'] ?? 'Cancel',
-                          style: const TextStyle(color: Colors.grey)),
-                    ),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: kRed),
-                      onPressed: () => Navigator.pop(context, true),
-                      child: Text(t['logout']?['logoutButton'] ?? 'Logout'),
-                    ),
-                  ],
-                ),
-              );
-              if (confirm == true) {
-                await auth.logout();
-              }
+              Future.delayed(const Duration(milliseconds: 300), () {
+                if (rootScaffoldKey.currentContext == null) return;
+                showDialog<bool>(
+                  context: rootScaffoldKey.currentContext!,
+                  builder: (_) => AlertDialog(
+                    title: Text(t['logout']?['title'] ?? 'Logout'),
+                    content: Text(t['logout']?['confirmationText'] ??
+                        'Are you sure you want to logout?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(
+                            rootScaffoldKey.currentContext!, false),
+                        child: Text(t['monthlyCalc']?['cancel'] ?? 'Cancel',
+                            style: const TextStyle(color: Colors.grey)),
+                      ),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(backgroundColor: kRed),
+                        onPressed: () {
+                          Navigator.pop(rootScaffoldKey.currentContext!, true);
+                          auth.logout();
+                        },
+                        child: Text(t['logout']?['logoutButton'] ?? 'Logout'),
+                      ),
+                    ],
+                  ),
+                );
+              });
             },
           ),
           const SizedBox(height: 16),
