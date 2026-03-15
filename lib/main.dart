@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'services/auth_provider.dart';
-import 'services/ad_service.dart';
 import 'services/lang_provider.dart';
+import 'services/ad_service.dart';
 import 'theme.dart';
 import 'screens/login_screen.dart';
 import 'screens/signup_screen.dart';
@@ -45,9 +45,20 @@ class MilkNoteApp extends StatelessWidget {
     }
 
     final router = GoRouter(
-      initialLocation: auth.isLoggedIn
-          ? (auth.isCowPerson ? '/cow-monthly' : '/add-milk')
-          : '/login',
+      initialLocation: '/login',
+      // Redirect based on auth state — reacts to logout/login changes
+      redirect: (context, state) {
+        final loggedIn = auth.isLoggedIn;
+        final onLogin = state.matchedLocation == '/login' ||
+            state.matchedLocation == '/signup';
+
+        if (!loggedIn && !onLogin) return '/login';
+        if (loggedIn && state.matchedLocation == '/login') {
+          return auth.isCowPerson ? '/cow-monthly' : '/add-milk';
+        }
+        return null;
+      },
+      refreshListenable: auth, // router refreshes when auth state changes
       routes: [
         // Public routes
         GoRoute(path: '/login', builder: (_, __) => LoginScreen()),
@@ -71,12 +82,19 @@ class MilkNoteApp extends StatelessWidget {
               HomeScreen(child: child, isCowPerson: auth.isCowPerson),
           routes: [
             GoRoute(path: '/add-milk', builder: (_, __) => AddMilkScreen()),
-            GoRoute(path: '/daily-report', builder: (_, __) => DailyReportScreen()),
-            GoRoute(path: '/monthly-report', builder: (_, __) => MonthlyReportScreen()),
-            GoRoute(path: '/full-report', builder: (_, __) => FullReportScreen()),
-            GoRoute(path: '/register-cow', builder: (_, __) => RegisterCowScreen()),
-            GoRoute(path: '/connect-cow', builder: (_, __) => ConnectCowScreen()),
-            GoRoute(path: '/cow-monthly', builder: (_, __) => CowMonthlyScreen()),
+            GoRoute(
+                path: '/daily-report', builder: (_, __) => DailyReportScreen()),
+            GoRoute(
+                path: '/monthly-report',
+                builder: (_, __) => MonthlyReportScreen()),
+            GoRoute(
+                path: '/full-report', builder: (_, __) => FullReportScreen()),
+            GoRoute(
+                path: '/register-cow', builder: (_, __) => RegisterCowScreen()),
+            GoRoute(
+                path: '/connect-cow', builder: (_, __) => ConnectCowScreen()),
+            GoRoute(
+                path: '/cow-monthly', builder: (_, __) => CowMonthlyScreen()),
           ],
         ),
       ],
