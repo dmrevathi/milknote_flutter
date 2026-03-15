@@ -7,7 +7,7 @@ import '../services/auth_provider.dart';
 import '../services/lang_provider.dart';
 import '../services/ad_service.dart';
 import '../theme.dart';
-import 'home_screen.dart';
+import 'home_screen.dart' show MilkNoteAppBar, rootScaffoldKey;
 
 // ═══════════════════════════════════════════════════════
 // DAILY REPORT
