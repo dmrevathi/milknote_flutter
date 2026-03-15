@@ -40,7 +40,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: build/web
 
-  # ── Android signed release AAB (Play Store) ──
+  # ── Android signed release AAB + APK ──
   build_release:
     runs-on: ubuntu-latest
 
@@ -60,10 +60,7 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
-      - name: Add Android support
-        run: flutter create . --platforms=android
-
-      - name: Add AdMob App ID to AndroidManifest
+      - name: Add AdMob App ID
         run: |
           MANIFEST="android/app/src/main/AndroidManifest.xml"
           sed -i 's|</application>|    <meta-data\n            android:name="com.google.android.gms.ads.APPLICATION_ID"\n            android:value="ca-app-pub-7800736979145298~5787058699"/>\n    </application>|' $MANIFEST
@@ -83,18 +80,9 @@ jobs:
 
       - name: Configure signing in build.gradle
         run: |
-          GRADLE="android/app/build.gradle.kts"
-          if [ ! -f "$GRADLE" ]; then
-            GRADLE="android/app/build.gradle"
-          fi
-          echo "Using gradle file: $GRADLE"
-          cat $GRADLE
-
-          # Write signing setup script
           python3 << 'PYEOF'
           import re, os
 
-          # Find correct gradle file
           kts = 'android/app/build.gradle.kts'
           groovy = 'android/app/build.gradle'
           gradle_file = kts if os.path.exists(kts) else groovy
@@ -103,10 +91,13 @@ jobs:
           with open(gradle_file, 'r') as f:
               content = f.read()
 
+          # Skip if already configured
+          if 'keystoreProperties' in content:
+              print('Signing already configured, skipping')
+              exit(0)
+
           if is_kts:
-              # Kotlin DSL - use Properties() directly (imported by default in .kts)
-              keystore_props = '''
-          import java.util.Properties
+              keystore_props = '''import java.util.Properties
           import java.io.FileInputStream
 
           val keystorePropertiesFile = rootProject.file("key.properties")
@@ -125,20 +116,11 @@ jobs:
                   }
               }
           '''
-              # Add imports at the very top
               content = keystore_props + content
-              # Add signingConfigs before buildTypes
               content = content.replace('buildTypes {', signing_config + '    buildTypes {', 1)
-              # Set release signing
-              content = re.sub(
-                  r'(release\s*\{)',
-                  r'\1\n            signingConfig = signingConfigs.getByName("release")',
-                  content, count=1
-              )
+              content = re.sub(r'(release\s*\{)', r'\1\n            signingConfig = signingConfigs.getByName("release")', content, count=1)
           else:
-              # Groovy DSL
-              keystore_props = '''
-          def keystoreProperties = new Properties()
+              keystore_props = '''def keystoreProperties = new Properties()
           def keystorePropertiesFile = rootProject.file('key.properties')
           if (keystorePropertiesFile.exists()) {
               keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
@@ -157,16 +139,11 @@ jobs:
           '''
               content = content.replace('android {', keystore_props + 'android {', 1)
               content = content.replace('buildTypes {', signing_config + '    buildTypes {', 1)
-              content = re.sub(
-                  r'(release\s*\{)',
-                  r'\1\n            signingConfig signingConfigs.release',
-                  content, count=1
-              )
+              content = re.sub(r'(release\s*\{)', r'\1\n            signingConfig signingConfigs.release', content, count=1)
 
           with open(gradle_file, 'w') as f:
               f.write(content)
-
-          print(f'Configured signing in {gradle_file}')
+          print(f'✅ Signing configured in {gradle_file}')
           PYEOF
 
       - name: Build release AAB
