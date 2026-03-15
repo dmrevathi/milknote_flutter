@@ -61,8 +61,8 @@ class MilkNoteApp extends StatelessWidget {
         return null;
       },
       routes: [
-        GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
-        GoRoute(path: '/signup', builder: (_, __) => const SignupScreen()),
+        GoRoute(path: '/login', builder: (_, __) => LoginScreen()),
+        GoRoute(path: '/signup', builder: (_, __) => SignupScreen()),
         GoRoute(
           path: '/edit-milk',
           builder: (_, state) {
@@ -79,26 +79,13 @@ class MilkNoteApp extends StatelessWidget {
             isCowPerson: auth.isCowPerson,
           ),
           routes: [
-            GoRoute(
-                path: '/add-milk', builder: (_, __) => const AddMilkScreen()),
-            GoRoute(
-                path: '/daily-report',
-                builder: (_, __) => const DailyReportScreen()),
-            GoRoute(
-                path: '/monthly-report',
-                builder: (_, __) => const MonthlyReportScreen()),
-            GoRoute(
-                path: '/full-report',
-                builder: (_, __) => const FullReportScreen()),
-            GoRoute(
-                path: '/register-cow',
-                builder: (_, __) => const RegisterCowScreen()),
-            GoRoute(
-                path: '/connect-cow',
-                builder: (_, __) => const ConnectCowScreen()),
-            GoRoute(
-                path: '/cow-monthly',
-                builder: (_, __) => const CowMonthlyScreen()),
+            GoRoute(path: '/add-milk', builder: (_, __) => AddMilkScreen()),
+            GoRoute(path: '/daily-report', builder: (_, __) => DailyReportScreen()),
+            GoRoute(path: '/monthly-report', builder: (_, __) => MonthlyReportScreen()),
+            GoRoute(path: '/full-report', builder: (_, __) => FullReportScreen()),
+            GoRoute(path: '/register-cow', builder: (_, __) => RegisterCowScreen()),
+            GoRoute(path: '/connect-cow', builder: (_, __) => ConnectCowScreen()),
+            GoRoute(path: '/cow-monthly', builder: (_, __) => CowMonthlyScreen()),
           ],
         ),
       ],
