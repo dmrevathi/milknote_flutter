@@ -1,0 +1,40 @@
+name: milknote
+description: Milk record tracking app for dairy farmers
+publish_to: 'none'
+version: 1.0.14+14
+
+environment:
+  sdk: '>=3.11.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  shared_preferences: ^2.3.0
+  http: ^1.2.0
+  go_router: ^14.6.0
+  provider: ^6.1.0
+  intl: ^0.20.0
+  cupertino_icons: ^1.0.8
+  google_mobile_ads: ^5.1.0
+  sendotp_flutter_sdk: ^0.0.2
+  package_info_plus: ^8.0.0
+  flutter_launcher_icons: ^0.14.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/translations/
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/icon/app_icon.png"
+  min_sdk_android: 21
+  adaptive_icon_background: "#2d7a3a"
+  adaptive_icon_foreground: "assets/icon/app_icon_foreground.png"
