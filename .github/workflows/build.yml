@@ -74,7 +74,7 @@ jobs:
 
       - name: Create key.properties
         run: |
-          cat > android/key.properties << 'KEYEOF'
+          cat > android/key.properties << KEYEOF
           storePassword=${{ secrets.STORE_PASSWORD }}
           keyPassword=${{ secrets.KEY_PASSWORD }}
           keyAlias=${{ secrets.KEY_ALIAS }}
@@ -83,26 +83,89 @@ jobs:
 
       - name: Configure signing in build.gradle
         run: |
-          GRADLE="android/app/build.gradle"
-          # Add signingConfigs before buildTypes
-          sed -i '/buildTypes {/i\
-              signingConfigs {\
-                  release {\
-                      keyAlias keystoreProperties["keyAlias"]\
-                      keyPassword keystoreProperties["keyPassword"]\
-                      storeFile file(keystoreProperties["storeFile"])\
-                      storePassword keystoreProperties["storePassword"]\
-                  }\
-              }' $GRADLE
-          # Load key.properties at top of android block
-          sed -i '/^android {/i\
-          def keystoreProperties = new Properties()\
-          def keystorePropertiesFile = rootProject.file("key.properties")\
-          if (keystorePropertiesFile.exists()) {\
-              keystoreProperties.load(new FileInputStream(keystorePropertiesFile))\
-          }' $GRADLE
-          # Set release signing config
-          sed -i 's/signingConfig signingConfigs.debug/signingConfig signingConfigs.release/' $GRADLE
+          GRADLE="android/app/build.gradle.kts"
+          if [ ! -f "$GRADLE" ]; then
+            GRADLE="android/app/build.gradle"
+          fi
+          echo "Using gradle file: $GRADLE"
+          cat $GRADLE
+
+          # Write signing setup script
+          python3 << 'PYEOF'
+          import re, os
+
+          # Find correct gradle file
+          kts = 'android/app/build.gradle.kts'
+          groovy = 'android/app/build.gradle'
+          gradle_file = kts if os.path.exists(kts) else groovy
+          is_kts = gradle_file.endswith('.kts')
+
+          with open(gradle_file, 'r') as f:
+              content = f.read()
+
+          if is_kts:
+              # Kotlin DSL
+              keystore_props = '''
+          val keystoreProperties = java.util.Properties()
+          val keystorePropertiesFile = rootProject.file("key.properties")
+          if (keystorePropertiesFile.exists()) {
+              keystoreProperties.load(java.io.FileInputStream(keystorePropertiesFile))
+          }
+
+          '''
+              signing_config = '''
+              signingConfigs {
+                  create("release") {
+                      keyAlias = keystoreProperties["keyAlias"] as String
+                      keyPassword = keystoreProperties["keyPassword"] as String
+                      storeFile = file(keystoreProperties["storeFile"] as String)
+                      storePassword = keystoreProperties["storePassword"] as String
+                  }
+              }
+          '''
+              # Add keystore props before android {
+              content = content.replace('android {', keystore_props + 'android {', 1)
+              # Add signingConfigs before buildTypes
+              content = content.replace('buildTypes {', signing_config + '    buildTypes {', 1)
+              # Set release signing
+              content = re.sub(
+                  r'(release\s*\{)',
+                  r'\1\n            signingConfig = signingConfigs.getByName("release")',
+                  content, count=1
+              )
+          else:
+              # Groovy DSL
+              keystore_props = '''
+          def keystoreProperties = new Properties()
+          def keystorePropertiesFile = rootProject.file('key.properties')
+          if (keystorePropertiesFile.exists()) {
+              keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+          }
+
+          '''
+              signing_config = '''
+              signingConfigs {
+                  release {
+                      keyAlias keystoreProperties['keyAlias']
+                      keyPassword keystoreProperties['keyPassword']
+                      storeFile file(keystoreProperties['storeFile'])
+                      storePassword keystoreProperties['storePassword']
+                  }
+              }
+          '''
+              content = content.replace('android {', keystore_props + 'android {', 1)
+              content = content.replace('buildTypes {', signing_config + '    buildTypes {', 1)
+              content = re.sub(
+                  r'(release\s*\{)',
+                  r'\1\n            signingConfig signingConfigs.release',
+                  content, count=1
+              )
+
+          with open(gradle_file, 'w') as f:
+              f.write(content)
+
+          print(f'Configured signing in {gradle_file}')
+          PYEOF
 
       - name: Build release AAB
         run: flutter build appbundle --release
