@@ -3,19 +3,13 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../services/auth_provider.dart';
+import '../services/lang_provider.dart';
 import '../theme.dart';
 
 final GlobalKey<ScaffoldState> rootScaffoldKey = GlobalKey<ScaffoldState>();
 
-// Play Store link — update once published
 const String _playStoreUrl =
     'https://play.google.com/store/apps/details?id=com.milknote.app';
-
-const String _shareMessage = '🥛 *MilkNote App*\n\n'
-    'பால் கணக்கு வைக்க எளிதான ஆப்!\n'
-    'உங்கள் தினசரி பால் கணக்கை டிஜிட்டலாக வைத்திருங்கள்.\n\n'
-    '👉 Download here:\n$_playStoreUrl\n\n'
-    'சேவைக்கு: 8825401886';
 
 class HomeScreen extends StatelessWidget {
   final Widget child;
@@ -40,6 +34,8 @@ class _AppDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auth = context.read<AuthProvider>();
+    final lang = context.watch<LangProvider>();
+    final t = lang.t;
 
     void go(String route) {
       rootScaffoldKey.currentState?.closeDrawer();
@@ -48,10 +44,11 @@ class _AppDrawer extends StatelessWidget {
 
     void shareApp() {
       rootScaffoldKey.currentState?.closeDrawer();
-      Share.share(
-        _shareMessage,
-        subject: 'MilkNote - பால் கணக்கு ஆப்',
-      );
+      final shareMsg = '🥛 *Milk Note App*\n\n'
+          '${t['login']?['footer'] ?? 'Digital milk record app'}\n\n'
+          '👉 Download: $_playStoreUrl\n\n'
+          'Call: 8825401886';
+      Share.share(shareMsg, subject: 'Milk Note App');
     }
 
     return Drawer(
@@ -64,10 +61,10 @@ class _AppDrawer extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.end,
-                children: const [
-                  Text('🥛', style: TextStyle(fontSize: 36)),
-                  SizedBox(height: 8),
-                  Text('Milk Note',
+                children: [
+                  const Text('🥛', style: TextStyle(fontSize: 36)),
+                  const SizedBox(height: 8),
+                  const Text('Milk Note',
                       style: TextStyle(
                           color: Colors.white,
                           fontSize: 22,
@@ -81,27 +78,28 @@ class _AppDrawer extends StatelessWidget {
           if (!isCowPerson) ...[
             _DrawerItem(
                 icon: Icons.add_circle_outline,
-                label: 'பால் கணக்கு சேர்',
+                label: t['sideBar']?['addMilkRecord'] ?? 'Add Milk',
                 onTap: () => go('/add-milk')),
             _DrawerItem(
                 icon: Icons.today,
-                label: 'இன்றைய பால் கணக்கு',
+                label: t['sideBar']?['todayMilkRecord'] ?? 'Today Report',
                 onTap: () => go('/daily-report')),
             _DrawerItem(
                 icon: Icons.calendar_month,
-                label: 'மாதாந்திர பால் கணக்கு',
+                label: t['sideBar']?['monthlyMilkRecord'] ?? 'Monthly Report',
                 onTap: () => go('/monthly-report')),
             _DrawerItem(
                 icon: Icons.assessment,
-                label: 'முழு பால் கணக்கு',
+                label: t['sideBar']?['allMilkRecord'] ?? 'Full Report',
                 onTap: () => go('/full-report')),
             _DrawerItem(
                 icon: Icons.person_add,
-                label: 'மாட்டுக்காரரை பதிவு செய்',
+                label: t['sideBar']?['registerMilkPerson'] ??
+                    'Register Cow Person',
                 onTap: () => go('/register-cow')),
             _DrawerItem(
                 icon: Icons.link,
-                label: 'மாட்டுக்காரரை இணை',
+                label: t['sideBar']?['addMilkPerson'] ?? 'Connect Cow Person',
                 onTap: () => go('/connect-cow')),
           ],
 
@@ -109,16 +107,17 @@ class _AppDrawer extends StatelessWidget {
           if (isCowPerson) ...[
             _DrawerItem(
                 icon: Icons.bar_chart,
-                label: 'மாதாந்திர பால் கணக்கு',
+                label: t['sideBar']?['milkManMonthlyMilkValue'] ??
+                    'Monthly Report',
                 onTap: () => go('/cow-monthly')),
           ],
 
           const Divider(),
 
-          // Share app — visible to all roles
+          // Share app
           _DrawerItem(
             icon: Icons.share,
-            label: 'ஆப்பை பகிர்',
+            label: 'Share App',
             color: Colors.blue.shade700,
             onTap: shareApp,
           ),
@@ -129,32 +128,32 @@ class _AppDrawer extends StatelessWidget {
           // Logout
           _DrawerItem(
             icon: Icons.logout,
-            label: 'வெளியேறு',
+            label: t['sideBar']?['logout'] ?? 'Logout',
             color: kRed,
             onTap: () async {
               rootScaffoldKey.currentState?.closeDrawer();
               final confirm = await showDialog<bool>(
                 context: context,
                 builder: (_) => AlertDialog(
-                  title: const Text('வெளியேறு'),
-                  content: const Text('நீங்கள் வெளியேற விரும்புகிறீர்களா?'),
+                  title: Text(t['logout']?['title'] ?? 'Logout'),
+                  content: Text(t['logout']?['confirmationText'] ??
+                      'Are you sure you want to logout?'),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(context, false),
-                      child: const Text('ரத்து',
-                          style: TextStyle(color: Colors.grey)),
+                      child: Text(t['monthlyCalc']?['cancel'] ?? 'Cancel',
+                          style: const TextStyle(color: Colors.grey)),
                     ),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(backgroundColor: kRed),
                       onPressed: () => Navigator.pop(context, true),
-                      child: const Text('வெளியேறு'),
+                      child: Text(t['logout']?['logoutButton'] ?? 'Logout'),
                     ),
                   ],
                 ),
               );
               if (confirm == true) {
                 await auth.logout();
-                if (context.mounted) context.go('/login');
               }
             },
           ),
@@ -190,7 +189,7 @@ class _DrawerItem extends StatelessWidget {
   }
 }
 
-// Reusable AppBar with menu button
+// Reusable AppBar
 class MilkNoteAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final List<Widget>? actions;

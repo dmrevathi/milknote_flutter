@@ -4,8 +4,9 @@ import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 import '../services/api_service.dart';
 import '../services/auth_provider.dart';
-import '../theme.dart';
+import '../services/lang_provider.dart';
 import '../services/ad_service.dart';
+import '../theme.dart';
 import 'home_screen.dart';
 
 // ═══════════════════════════════════════════════════════
@@ -24,7 +25,10 @@ class _DailyReportScreenState extends State<DailyReportScreen> {
   bool _loading = false;
 
   @override
-  void initState() { super.initState(); _fetch(); }
+  void initState() {
+    super.initState();
+    _fetch();
+  }
 
   Future<void> _fetch() async {
     setState(() => _loading = true);
@@ -37,24 +41,36 @@ class _DailyReportScreenState extends State<DailyReportScreen> {
         _total = double.tryParse(res['grand_total']?.toString() ?? '0') ?? 0;
       });
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString()), backgroundColor: kRed));
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(e.toString()), backgroundColor: kRed));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
   Future<void> _pickDate() async {
-    final d = await showDatePicker(context: context,
-        initialDate: _date, firstDate: DateTime(2020), lastDate: DateTime.now());
-    if (d != null) { setState(() => _date = d); _fetch(); }
+    final d = await showDatePicker(
+        context: context,
+        initialDate: _date,
+        firstDate: DateTime(2020),
+        lastDate: DateTime.now());
+    if (d != null) {
+      setState(() => _date = d);
+      _fetch();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final t = context.watch<LangProvider>().t;
     return Scaffold(
-      appBar: MilkNoteAppBar(title: 'இன்றைய பால் கணக்கு',
-          actions: [IconButton(icon: const Icon(Icons.refresh), onPressed: _fetch)]),
+      appBar: MilkNoteAppBar(
+        title: t['sideBar']?['todayMilkRecord'] ?? 'Today Milk',
+        actions: [
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _fetch)
+        ],
+      ),
       body: Column(children: [
         Padding(
           padding: const EdgeInsets.all(12),
@@ -62,47 +78,67 @@ class _DailyReportScreenState extends State<DailyReportScreen> {
             onTap: _pickDate,
             child: Container(
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: Colors.white,
+              decoration: BoxDecoration(
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: Colors.grey.shade300)),
-              child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              child:
+                  Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                 const Icon(Icons.calendar_today, color: kGreen, size: 18),
                 const SizedBox(width: 8),
-                Text(DateFormat('dd-MM-yyyy').format(_date),
-                    style: const TextStyle(color: kGreen, fontWeight: FontWeight.w700)),
+                Text(
+                    '${t['dailyMilkReport']?['dateLabel'] ?? 'Date'}: ${DateFormat('dd-MM-yyyy').format(_date)}',
+                    style: const TextStyle(
+                        color: kGreen, fontWeight: FontWeight.w700)),
               ]),
             ),
           ),
         ),
         if (_loading)
-          const Expanded(child: Center(child: CircularProgressIndicator(color: kGreen)))
+          const Expanded(
+              child: Center(child: CircularProgressIndicator(color: kGreen)))
         else
-          Expanded(child: _records.isEmpty
-            ? const Center(child: Text('No records', style: TextStyle(color: Colors.grey)))
-            : ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                itemCount: _records.length,
-                itemBuilder: (_, i) {
-                  final r = _records[i];
-                  return Card(child: ListTile(
-                    title: Text(r['cow_name'] ?? '',
-                        style: const TextStyle(fontWeight: FontWeight.w700)),
-                    subtitle: Text(r['cow_phone'] ?? ''),
-                    trailing: Text('${r['quantity']} L',
-                        style: const TextStyle(color: kGreen,
-                            fontWeight: FontWeight.w800, fontSize: 16)),
-                  ));
-                },
-              ),
+          Expanded(
+            child: _records.isEmpty
+                ? Center(
+                    child: Text(
+                        t['dailyMilkReport']?['errorMsg'] ?? 'No records',
+                        style: const TextStyle(color: Colors.grey)))
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    itemCount: _records.length,
+                    itemBuilder: (_, i) {
+                      final r = _records[i];
+                      return Card(
+                          child: ListTile(
+                        title: Text(r['cow_name'] ?? '',
+                            style:
+                                const TextStyle(fontWeight: FontWeight.w700)),
+                        subtitle: Text(r['cow_phone'] ?? ''),
+                        trailing: Text(
+                            '${r['quantity']} ${t['dailyMilkReport']?['literLabel'] ?? 'L'}',
+                            style: const TextStyle(
+                                color: kGreen,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 16)),
+                      ));
+                    },
+                  ),
           ),
         if (_total > 0)
           Container(
-            width: double.infinity, padding: const EdgeInsets.all(16), color: kGreen,
-            child: Text('மொத்தம்: $_total லிட்டர்',
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            color: kGreen,
+            child: Text(
+                '${t['dailyMilkReport']?['total'] ?? 'Total'}: $_total ${t['dailyMilkReport']?['literLabel'] ?? 'L'}',
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.white,
-                    fontWeight: FontWeight.w700, fontSize: 16)),
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16)),
           ),
+        const BannerAdWidget(),
       ]),
     );
   }
@@ -127,26 +163,34 @@ class _MonthlyReportScreenState extends State<MonthlyReportScreen> {
   bool _loadingReport = false;
 
   @override
-  void initState() { super.initState(); _fetchPersons(); }
+  void initState() {
+    super.initState();
+    _fetchPersons();
+  }
 
   Future<void> _fetchPersons() async {
     setState(() => _loadingPersons = true);
     try {
       final auth = context.read<AuthProvider>();
       final data = await ApiService.getCowPersonList(auth.userId!);
-      setState(() { _persons = data is List ? data : []; _selected = null; });
+      setState(() {
+        _persons = data is List ? data : [];
+        _selected = null;
+      });
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString()), backgroundColor: kRed));
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(e.toString()), backgroundColor: kRed));
     } finally {
       if (mounted) setState(() => _loadingPersons = false);
     }
   }
 
-  Future<void> _fetchReport() async {
+  Future<void> _fetchReport(Map t) async {
     if (_selected == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('மாட்டுக்காரர் தேர்வு செய்யவும்')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(t['monthlyMilkReport']?['select_cow_person'] ??
+              'Select cow person')));
       return;
     }
     setState(() => _loadingReport = true);
@@ -159,23 +203,29 @@ class _MonthlyReportScreenState extends State<MonthlyReportScreen> {
         _total = double.tryParse(res['grand_total']?.toString() ?? '0') ?? 0;
       });
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString()), backgroundColor: kRed));
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(e.toString()), backgroundColor: kRed));
     } finally {
       if (mounted) setState(() => _loadingReport = false);
     }
   }
 
   Future<void> _pickMonth() async {
-    final d = await showDatePicker(context: context,
-        initialDate: _month, firstDate: DateTime(2020), lastDate: DateTime.now());
+    final d = await showDatePicker(
+        context: context,
+        initialDate: _month,
+        firstDate: DateTime(2020),
+        lastDate: DateTime.now());
     if (d != null) setState(() => _month = d);
   }
 
   @override
   Widget build(BuildContext context) {
+    final t = context.watch<LangProvider>().t;
     return Scaffold(
-      appBar: MilkNoteAppBar(title: 'மாதாந்திர பால் கணக்கு'),
+      appBar: MilkNoteAppBar(
+          title: t['sideBar']?['monthlyMilkRecord'] ?? 'Monthly Milk'),
       body: Column(children: [
         Padding(
           padding: const EdgeInsets.all(12),
@@ -184,16 +234,22 @@ class _MonthlyReportScreenState extends State<MonthlyReportScreen> {
               const CircularProgressIndicator(color: kGreen)
             else
               Container(
-                decoration: BoxDecoration(color: Colors.white,
+                decoration: BoxDecoration(
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: Colors.grey.shade300)),
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: DropdownButton<dynamic>(
-                  value: _selected, isExpanded: true, underline: const SizedBox(),
-                  hint: const Text('-- மாட்டுக்காரர் தேர்வு --'),
-                  items: _persons.map((p) => DropdownMenuItem(
-                      value: p,
-                      child: Text('${p['name']} (${p['phone_number']})'))).toList(),
+                  value: _selected,
+                  isExpanded: true,
+                  underline: const SizedBox(),
+                  hint: Text(t['monthlyMilkReport']?['select_cow_person'] ??
+                      '-- Select --'),
+                  items: _persons
+                      .map((p) => DropdownMenuItem(
+                          value: p,
+                          child: Text('${p['name']} (${p['phone_number']})')))
+                      .toList(),
                   onChanged: (v) => setState(() => _selected = v),
                 ),
               ),
@@ -202,62 +258,86 @@ class _MonthlyReportScreenState extends State<MonthlyReportScreen> {
               onTap: _pickMonth,
               child: Container(
                 padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: Colors.white,
+                decoration: BoxDecoration(
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: Colors.grey.shade300)),
-                child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                child:
+                    Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                   const Icon(Icons.calendar_month, color: kGreen, size: 18),
                   const SizedBox(width: 8),
-                  Text('மாதம்: ${DateFormat('yyyy-MM').format(_month)}',
-                      style: const TextStyle(color: kGreen, fontWeight: FontWeight.w700)),
+                  Text(
+                      '${t['monthlyMilkReport']?['month_label'] ?? 'Month'}: ${DateFormat('yyyy-MM').format(_month)}',
+                      style: const TextStyle(
+                          color: kGreen, fontWeight: FontWeight.w700)),
                 ]),
               ),
             ),
             const SizedBox(height: 10),
-            SizedBox(width: double.infinity,
+            SizedBox(
+              width: double.infinity,
               child: ElevatedButton(
-                onPressed: _loadingReport ? null : _fetchReport,
+                onPressed: _loadingReport ? null : () => _fetchReport(t),
                 child: _loadingReport
-                    ? const SizedBox(height: 20, width: 20,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : const Text('பால் விபரம் காட்டு'),
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                            color: Colors.white, strokeWidth: 2))
+                    : Text(
+                        t['monthlyMilkReport']?['show_milk_button'] ?? 'Show'),
               ),
             ),
           ]),
         ),
-        Expanded(child: _records.isEmpty
-          ? const Center(child: Text('No records', style: TextStyle(color: Colors.grey)))
-          : ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              itemCount: _records.length,
-              itemBuilder: (_, i) {
-                final r = _records[i];
-                final parts = (r['date'] ?? '').split('-');
-                final displayDate = parts.length == 3
-                    ? '${parts[2]}-${parts[1]}-${parts[0]}' : r['date'];
-                return Card(child: ListTile(
-                  title: Text(displayDate,
-                      style: const TextStyle(fontWeight: FontWeight.w700)),
-                  subtitle: Text('${r['quantities']} L | மொத்தம்: ${r['total_quantity']} L'),
-                  trailing: TextButton(
-                    child: const Text('மாற்று', style: TextStyle(color: kGreen)),
-                    onPressed: () => context.go('/edit-milk',
-                        extra: {
-                          'connection_id': _selected['connection_id'].toString(),
+        Expanded(
+          child: _records.isEmpty
+              ? Center(
+                  child: Text(
+                      t['monthlyMilkReport']?['errorMsg'] ?? 'No records',
+                      style: const TextStyle(color: Colors.grey)))
+              : ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  itemCount: _records.length,
+                  itemBuilder: (_, i) {
+                    final r = _records[i];
+                    final parts = (r['date'] ?? '').split('-');
+                    final displayDate = parts.length == 3
+                        ? '${parts[2]}-${parts[1]}-${parts[0]}'
+                        : r['date'];
+                    return Card(
+                        child: ListTile(
+                      title: Text(displayDate,
+                          style: const TextStyle(fontWeight: FontWeight.w700)),
+                      subtitle: Text(
+                          '${r['quantities']} ${t['monthlyMilkReport']?['liter_label'] ?? 'L'} | '
+                          '${t['monthlyMilkReport']?['total_label'] ?? 'Total'}: ${r['total_quantity']} ${t['monthlyMilkReport']?['liter_label'] ?? 'L'}'),
+                      trailing: TextButton(
+                        child: Text(
+                            t['monthlyMilkReport']?['edit_button'] ?? 'Edit',
+                            style: const TextStyle(color: kGreen)),
+                        onPressed: () => context.go('/edit-milk', extra: {
+                          'connection_id':
+                              _selected['connection_id'].toString(),
                           'date': r['date'].toString(),
                         }),
-                  ),
-                ));
-              },
-            ),
+                      ),
+                    ));
+                  },
+                ),
         ),
         if (_total > 0)
           Container(
-            width: double.infinity, padding: const EdgeInsets.all(16), color: kGreen,
-            child: Text('மொத்த பால்: $_total லிட்டர்',
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            color: kGreen,
+            child: Text(
+                '${t['monthlyMilkReport']?['total_milk_label'] ?? 'Total'}: $_total ${t['monthlyMilkReport']?['liter_label'] ?? 'L'}',
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.white,
-                    fontWeight: FontWeight.w700, fontSize: 16)),
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16)),
           ),
         const BannerAdWidget(),
       ]),
@@ -281,7 +361,7 @@ class _FullReportScreenState extends State<FullReportScreen> {
   double _total = 0;
   bool _loading = false;
 
-  Future<void> _fetch() async {
+  Future<void> _fetch(Map t) async {
     setState(() => _loading = true);
     try {
       final auth = context.read<AuthProvider>();
@@ -294,90 +374,120 @@ class _FullReportScreenState extends State<FullReportScreen> {
         _total = double.tryParse(res['grand_total']?.toString() ?? '0') ?? 0;
       });
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString()), backgroundColor: kRed));
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(e.toString()), backgroundColor: kRed));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
   Future<void> _pickDate(bool isFrom) async {
-    final d = await showDatePicker(context: context,
+    final d = await showDatePicker(
+        context: context,
         initialDate: isFrom ? _from : _to,
-        firstDate: DateTime(2020), lastDate: DateTime.now());
+        firstDate: DateTime(2020),
+        lastDate: DateTime.now());
     if (d != null) setState(() => isFrom ? _from = d : _to = d);
   }
 
   @override
   Widget build(BuildContext context) {
+    final t = context.watch<LangProvider>().t;
     return Scaffold(
-      appBar: MilkNoteAppBar(title: 'முழு பால் அறிக்கை'),
+      appBar:
+          MilkNoteAppBar(title: t['fullMilkReport']?['title'] ?? 'Full Report'),
       body: Column(children: [
         Padding(
           padding: const EdgeInsets.all(12),
           child: Column(children: [
             Row(children: [
-              Expanded(child: InkWell(
+              Expanded(
+                  child: InkWell(
                 onTap: () => _pickDate(true),
                 child: Container(
                   padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: Colors.white,
+                  decoration: BoxDecoration(
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(color: Colors.grey.shade300)),
-                  child: Text('From: ${DateFormat('dd-MM-yyyy').format(_from)}',
-                      style: const TextStyle(color: kGreen, fontWeight: FontWeight.w600)),
+                  child: Text(
+                      '${t['fullMilkReport']?['fromDate'] ?? 'From'}: ${DateFormat('dd-MM-yyyy').format(_from)}',
+                      style: const TextStyle(
+                          color: kGreen, fontWeight: FontWeight.w600)),
                 ),
               )),
               const SizedBox(width: 10),
-              Expanded(child: InkWell(
+              Expanded(
+                  child: InkWell(
                 onTap: () => _pickDate(false),
                 child: Container(
                   padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: Colors.white,
+                  decoration: BoxDecoration(
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(color: Colors.grey.shade300)),
-                  child: Text('To: ${DateFormat('dd-MM-yyyy').format(_to)}',
-                      style: const TextStyle(color: kGreen, fontWeight: FontWeight.w600)),
+                  child: Text(
+                      '${t['fullMilkReport']?['toDate'] ?? 'To'}: ${DateFormat('dd-MM-yyyy').format(_to)}',
+                      style: const TextStyle(
+                          color: kGreen, fontWeight: FontWeight.w600)),
                 ),
               )),
             ]),
             const SizedBox(height: 10),
-            SizedBox(width: double.infinity,
+            SizedBox(
+              width: double.infinity,
               child: ElevatedButton(
-                onPressed: _loading ? null : _fetch,
+                onPressed: _loading ? null : () => _fetch(t),
                 child: _loading
-                    ? const SizedBox(height: 20, width: 20,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : const Text('கணக்கு கொடு'),
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                            color: Colors.white, strokeWidth: 2))
+                    : Text(
+                        t['fullMilkReport']?['generateReport'] ?? 'Generate'),
               ),
             ),
           ]),
         ),
-        Expanded(child: _records.isEmpty
-          ? const Center(child: Text('No records', style: TextStyle(color: Colors.grey)))
-          : ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              itemCount: _records.length,
-              itemBuilder: (_, i) {
-                final r = _records[i];
-                return Card(child: ListTile(
-                  title: Text(r['cow_name'] ?? '',
-                      style: const TextStyle(fontWeight: FontWeight.w700)),
-                  subtitle: Text(r['report_date'] ?? ''),
-                  trailing: Text('${r['quantity']} L',
-                      style: const TextStyle(color: kGreen,
-                          fontWeight: FontWeight.w800, fontSize: 16)),
-                ));
-              },
-            ),
+        Expanded(
+          child: _records.isEmpty
+              ? Center(
+                  child: Text(t['fullMilkReport']?['total'] ?? 'No records',
+                      style: const TextStyle(color: Colors.grey)))
+              : ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  itemCount: _records.length,
+                  itemBuilder: (_, i) {
+                    final r = _records[i];
+                    return Card(
+                        child: ListTile(
+                      title: Text(r['cow_name'] ?? '',
+                          style: const TextStyle(fontWeight: FontWeight.w700)),
+                      subtitle: Text(r['report_date'] ?? ''),
+                      trailing: Text(
+                          '${r['quantity']} ${t['fullMilkReport']?['liters'] ?? 'L'}',
+                          style: const TextStyle(
+                              color: kGreen,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 16)),
+                    ));
+                  },
+                ),
         ),
         if (_total > 0)
           Container(
-            width: double.infinity, padding: const EdgeInsets.all(16), color: kGreen,
-            child: Text('மொத்தம்: $_total லிட்டர்',
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            color: kGreen,
+            child: Text(
+                '${t['fullMilkReport']?['total'] ?? 'Total'}: $_total ${t['fullMilkReport']?['liters'] ?? 'L'}',
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.white,
-                    fontWeight: FontWeight.w700, fontSize: 16)),
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16)),
           ),
         const BannerAdWidget(),
       ]),
@@ -400,34 +510,40 @@ class _RegisterCowScreenState extends State<RegisterCowScreen> {
   bool _loading = false;
 
   @override
-  void dispose() { _phoneCtrl.dispose(); _nameCtrl.dispose(); super.dispose(); }
+  void dispose() {
+    _phoneCtrl.dispose();
+    _nameCtrl.dispose();
+    super.dispose();
+  }
 
-  Future<void> _register() async {
+  Future<void> _register(Map t) async {
     if (_phoneCtrl.text.trim().isEmpty || _nameCtrl.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('All fields required'), backgroundColor: kRed));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(
+              t['registerCowPerson']?['errorTitle'] ?? 'All fields required'),
+          backgroundColor: kRed));
       return;
     }
     setState(() => _loading = true);
     try {
       final auth = context.read<AuthProvider>();
-      final pass = (1000 + DateTime.now().millisecondsSinceEpoch % 9000).toString();
+      final pass =
+          (1000 + DateTime.now().millisecondsSinceEpoch % 9000).toString();
       final userRes = await ApiService.registerCowPerson(
           _phoneCtrl.text.trim(), _nameCtrl.text.trim(), pass);
       await ApiService.connectCowPerson(userRes['id'].toString(), auth.userId!);
       if (!mounted) return;
-      if (!mounted) return;
       _phoneCtrl.clear();
       _nameCtrl.clear();
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('மாட்டுக்காரர் பதிவு செய்யப்பட்டது மற்றும் இணைக்கப்பட்டார்! ✅'),
-        backgroundColor: kGreen,
-        duration: Duration(seconds: 3),
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content:
+              Text(t['registerCowPerson']?['successMessage'] ?? 'Registered!'),
+          backgroundColor: kGreen));
       context.go('/add-milk');
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString()), backgroundColor: kRed));
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(e.toString()), backgroundColor: kRed));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -435,27 +551,41 @@ class _RegisterCowScreenState extends State<RegisterCowScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = context.watch<LangProvider>().t;
     return Scaffold(
-      appBar: MilkNoteAppBar(title: 'மாட்டுக்காரரை பதிவு செய்'),
+      appBar: MilkNoteAppBar(
+          title: t['registerCowPerson']?['title'] ?? 'Register Cow Person'),
       body: Padding(
         padding: const EdgeInsets.all(20),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          const Text('மாட்டுக்காரர் போன் நம்பர்',
-              style: TextStyle(fontWeight: FontWeight.w600, color: Colors.black54)),
+        child:
+            Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Text(t['registerCowPerson']?['phonePlaceholder'] ?? 'Phone',
+              style: const TextStyle(
+                  fontWeight: FontWeight.w600, color: Colors.black54)),
           const SizedBox(height: 6),
-          TextField(controller: _phoneCtrl, keyboardType: TextInputType.phone,
-              maxLength: 10, decoration: const InputDecoration(counterText: '')),
+          TextField(
+              controller: _phoneCtrl,
+              keyboardType: TextInputType.phone,
+              maxLength: 10,
+              decoration: InputDecoration(
+                  hintText: t['registerCowPerson']?['phonePlaceholder'],
+                  counterText: '')),
           const SizedBox(height: 14),
-          const Text('மாட்டுக்காரர் பெயர் & ஊர்',
-              style: TextStyle(fontWeight: FontWeight.w600, color: Colors.black54)),
+          Text(t['registerCowPerson']?['namePlaceholder'] ?? 'Name',
+              style: const TextStyle(
+                  fontWeight: FontWeight.w600, color: Colors.black54)),
           const SizedBox(height: 6),
-          TextField(controller: _nameCtrl),
+          TextField(
+              controller: _nameCtrl,
+              decoration: InputDecoration(
+                  hintText: t['registerCowPerson']?['namePlaceholder'])),
           const SizedBox(height: 20),
           _loading
               ? const Center(child: CircularProgressIndicator(color: kGreen))
               : ElevatedButton(
-                  onPressed: _register,
-                  child: const Text('மாட்டுக்காரரை பதிவு செய்')),
+                  onPressed: () => _register(t),
+                  child: Text(
+                      t['registerCowPerson']?['registerButton'] ?? 'Register')),
         ]),
       ),
     );
@@ -477,68 +607,92 @@ class _ConnectCowScreenState extends State<ConnectCowScreen> {
   bool _loading = false;
 
   @override
-  void dispose() { _searchCtrl.dispose(); super.dispose(); }
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
 
-  Future<void> _search() async {
+  Future<void> _search(Map t) async {
     if (_searchCtrl.text.trim().isEmpty) return;
-    setState(() { _loading = true; _results = []; });
+    setState(() {
+      _loading = true;
+      _results = [];
+    });
     try {
       final data = await ApiService.searchCowPerson(_searchCtrl.text.trim());
       setState(() => _results = data is List ? data : []);
       if (_results.isEmpty && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No results. Check phone number.')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(
+                t['connectCowPerson']?['noResultsMessage'] ?? 'No results')));
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString()), backgroundColor: kRed));
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(e.toString()), backgroundColor: kRed));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
-  Future<void> _connect(dynamic person) async {
+  Future<void> _connect(dynamic person, Map t) async {
     try {
       final auth = context.read<AuthProvider>();
       await ApiService.connectCowPerson(person['id'].toString(), auth.userId!);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('${person['name']} இணைக்கப்பட்டது!'),
+          content: Text(
+              '${person['name']} ${t['connectCowPerson']?['connected'] ?? 'connected'}!'),
           backgroundColor: kGreen));
-      setState(() { _results = []; _searchCtrl.clear(); });
+      setState(() {
+        _results = [];
+        _searchCtrl.clear();
+      });
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString()), backgroundColor: kRed));
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(e.toString()), backgroundColor: kRed));
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final t = context.watch<LangProvider>().t;
     return Scaffold(
-      appBar: MilkNoteAppBar(title: 'மாட்டுக்காரரை இணை'),
+      appBar: MilkNoteAppBar(
+          title: t['connectCowPerson']?['title'] ?? 'Connect Cow Person'),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(children: [
           Row(children: [
-            Expanded(child: TextField(
-                controller: _searchCtrl,
-                keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(hintText: 'போன் நம்பரை உள்ளிடவும்'))),
+            Expanded(
+                child: TextField(
+                    controller: _searchCtrl,
+                    keyboardType: TextInputType.phone,
+                    decoration: InputDecoration(
+                        hintText: t['connectCowPerson']?['phonePlaceholder'] ??
+                            'Enter phone'))),
             const SizedBox(width: 10),
-            ElevatedButton(onPressed: _loading ? null : _search, child: const Text('தேடு')),
+            ElevatedButton(
+                onPressed: _loading ? null : () => _search(t),
+                child:
+                    Text(t['connectCowPerson']?['searchButton'] ?? 'Search')),
           ]),
           const SizedBox(height: 16),
           if (_loading) const CircularProgressIndicator(color: kGreen),
-          Expanded(child: ListView.builder(
+          Expanded(
+              child: ListView.builder(
             itemCount: _results.length,
             itemBuilder: (_, i) {
               final p = _results[i];
-              return Card(child: ListTile(
+              return Card(
+                  child: ListTile(
                 title: Text(p['name'] ?? '',
                     style: const TextStyle(fontWeight: FontWeight.w700)),
                 subtitle: Text(p['phone_number'] ?? ''),
                 trailing: ElevatedButton(
-                    onPressed: () => _connect(p), child: const Text('இணை')),
+                    onPressed: () => _connect(p, t),
+                    child: Text(t['connectCowPerson']?['ok'] ?? 'Connect')),
               ));
             },
           )),

@@ -31,44 +31,38 @@ void main() async {
   );
 }
 
-class MilkNoteApp extends StatefulWidget {
+class MilkNoteApp extends StatelessWidget {
   const MilkNoteApp({super.key});
-  @override
-  State<MilkNoteApp> createState() => _MilkNoteAppState();
-}
-
-class _MilkNoteAppState extends State<MilkNoteApp> {
-  late final GoRouter _router;
 
   @override
-  void initState() {
-    super.initState();
-    final auth = Provider.of<AuthProvider>(context, listen: false);
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
 
-    _router = GoRouter(
-      initialLocation: '/login',
+    if (auth.isLoading) {
+      return const MaterialApp(
+        home: Scaffold(body: Center(child: CircularProgressIndicator())),
+      );
+    }
+
+    final router = GoRouter(
+      initialLocation: auth.isLoggedIn
+          ? (auth.isCowPerson ? '/cow-monthly' : '/add-milk')
+          : '/login',
       refreshListenable: auth,
       redirect: (context, state) {
-        // Wait until auth is loaded
-        if (auth.isLoading) return null;
-
         final loggedIn = auth.isLoggedIn;
         final loc = state.matchedLocation;
         final onPublic = loc == '/login' || loc == '/signup';
 
-        // Not logged in — send to login
         if (!loggedIn && !onPublic) return '/login';
-
-        // Logged in — send away from login
         if (loggedIn && loc == '/login') {
           return auth.isCowPerson ? '/cow-monthly' : '/add-milk';
         }
-
         return null;
       },
       routes: [
-        GoRoute(path: '/login', builder: (_, __) => LoginScreen()),
-        GoRoute(path: '/signup', builder: (_, __) => SignupScreen()),
+        GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
+        GoRoute(path: '/signup', builder: (_, __) => const SignupScreen()),
         GoRoute(
           path: '/edit-milk',
           builder: (_, state) {
@@ -82,51 +76,38 @@ class _MilkNoteAppState extends State<MilkNoteApp> {
         ShellRoute(
           builder: (context, state, child) => HomeScreen(
             child: child,
-            isCowPerson: context.read<AuthProvider>().isCowPerson,
+            isCowPerson: auth.isCowPerson,
           ),
           routes: [
-            GoRoute(path: '/add-milk', builder: (_, __) => AddMilkScreen()),
             GoRoute(
-                path: '/daily-report', builder: (_, __) => DailyReportScreen()),
+                path: '/add-milk', builder: (_, __) => const AddMilkScreen()),
+            GoRoute(
+                path: '/daily-report',
+                builder: (_, __) => const DailyReportScreen()),
             GoRoute(
                 path: '/monthly-report',
-                builder: (_, __) => MonthlyReportScreen()),
+                builder: (_, __) => const MonthlyReportScreen()),
             GoRoute(
-                path: '/full-report', builder: (_, __) => FullReportScreen()),
+                path: '/full-report',
+                builder: (_, __) => const FullReportScreen()),
             GoRoute(
-                path: '/register-cow', builder: (_, __) => RegisterCowScreen()),
+                path: '/register-cow',
+                builder: (_, __) => const RegisterCowScreen()),
             GoRoute(
-                path: '/connect-cow', builder: (_, __) => ConnectCowScreen()),
+                path: '/connect-cow',
+                builder: (_, __) => const ConnectCowScreen()),
             GoRoute(
-                path: '/cow-monthly', builder: (_, __) => CowMonthlyScreen()),
+                path: '/cow-monthly',
+                builder: (_, __) => const CowMonthlyScreen()),
           ],
         ),
       ],
     );
-  }
-
-  @override
-  void dispose() {
-    _router.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final auth = context.watch<AuthProvider>();
-
-    if (auth.isLoading) {
-      return const MaterialApp(
-        home: Scaffold(
-          body: Center(child: CircularProgressIndicator()),
-        ),
-      );
-    }
 
     return MaterialApp.router(
       title: 'Milk Note',
       theme: appTheme,
-      routerConfig: _router,
+      routerConfig: router,
       debugShowCheckedModeBanner: false,
     );
   }
