@@ -44,7 +44,8 @@ class _AppDrawer extends StatelessWidget {
 
     void shareApp() {
       rootScaffoldKey.currentState?.closeDrawer();
-      final shareMsg = '🥛 *Milk Note App*\n\n'
+      final shareMsg =
+          '🥛 *Milk Note App*\n\n'
           '${t['login']?['footer'] ?? 'Digital milk record app'}\n\n'
           '👉 Download: $_playStoreUrl\n\n'
           'Call: 8825401886';
@@ -65,51 +66,73 @@ class _AppDrawer extends StatelessWidget {
                   const Text('🥛', style: TextStyle(fontSize: 36)),
                   const SizedBox(height: 8),
                   const Text('Milk Note',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800)),
+                      style: TextStyle(color: Colors.white,
+                          fontSize: 22, fontWeight: FontWeight.w800)),
                 ],
               ),
             ),
           ),
 
+          // Language switcher
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(children: [
+              const Icon(Icons.language, color: kGreen, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: DropdownButton<String>(
+                  value: lang.lang,
+                  isExpanded: true,
+                  underline: const SizedBox(),
+                  isDense: true,
+                  items: kLanguages.map((l) => DropdownMenuItem(
+                    value: l['code'],
+                    child: Text(l['label']!,
+                        style: const TextStyle(fontSize: 14)),
+                  )).toList(),
+                  onChanged: (code) {
+                    if (code != null) lang.setLanguage(code);
+                  },
+                ),
+              ),
+            ]),
+          ),
+          const Divider(height: 1),
+
           // Milk person menus
           if (!isCowPerson) ...[
             _DrawerItem(
-                icon: Icons.add_circle_outline,
-                label: t['sideBar']?['addMilkRecord'] ?? 'Add Milk',
-                onTap: () => go('/add-milk')),
+              icon: Icons.add_circle_outline,
+              label: t['sideBar']?['addMilkRecord'] ?? 'Add Milk',
+              onTap: () => go('/add-milk')),
             _DrawerItem(
-                icon: Icons.today,
-                label: t['sideBar']?['todayMilkRecord'] ?? 'Today Report',
-                onTap: () => go('/daily-report')),
+              icon: Icons.today,
+              label: t['sideBar']?['todayMilkRecord'] ?? 'Today Report',
+              onTap: () => go('/daily-report')),
             _DrawerItem(
-                icon: Icons.calendar_month,
-                label: t['sideBar']?['monthlyMilkRecord'] ?? 'Monthly Report',
-                onTap: () => go('/monthly-report')),
+              icon: Icons.calendar_month,
+              label: t['sideBar']?['monthlyMilkRecord'] ?? 'Monthly Report',
+              onTap: () => go('/monthly-report')),
             _DrawerItem(
-                icon: Icons.assessment,
-                label: t['sideBar']?['allMilkRecord'] ?? 'Full Report',
-                onTap: () => go('/full-report')),
+              icon: Icons.assessment,
+              label: t['sideBar']?['allMilkRecord'] ?? 'Full Report',
+              onTap: () => go('/full-report')),
             _DrawerItem(
-                icon: Icons.person_add,
-                label: t['sideBar']?['registerMilkPerson'] ??
-                    'Register Cow Person',
-                onTap: () => go('/register-cow')),
+              icon: Icons.person_add,
+              label: t['sideBar']?['registerMilkPerson'] ?? 'Register Cow Person',
+              onTap: () => go('/register-cow')),
             _DrawerItem(
-                icon: Icons.link,
-                label: t['sideBar']?['addMilkPerson'] ?? 'Connect Cow Person',
-                onTap: () => go('/connect-cow')),
+              icon: Icons.link,
+              label: t['sideBar']?['addMilkPerson'] ?? 'Connect Cow Person',
+              onTap: () => go('/connect-cow')),
           ],
 
           // Cow person menus
           if (isCowPerson) ...[
             _DrawerItem(
-                icon: Icons.bar_chart,
-                label: t['sideBar']?['milkManMonthlyMilkValue'] ??
-                    'Monthly Report',
-                onTap: () => go('/cow-monthly')),
+              icon: Icons.bar_chart,
+              label: t['sideBar']?['milkManMonthlyMilkValue'] ?? 'Monthly Report',
+              onTap: () => go('/cow-monthly')),
           ],
 
           const Divider(),
@@ -143,8 +166,7 @@ class _AppDrawer extends StatelessWidget {
                         'Are you sure you want to logout?'),
                     actions: [
                       TextButton(
-                        onPressed: () => Navigator.pop(
-                            rootScaffoldKey.currentContext!, false),
+                        onPressed: () => Navigator.pop(rootScaffoldKey.currentContext!, false),
                         child: Text(t['monthlyCalc']?['cancel'] ?? 'Cancel',
                             style: const TextStyle(color: Colors.grey)),
                       ),

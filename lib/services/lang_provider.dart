@@ -16,14 +16,29 @@ const List<Map<String, String>> kLanguages = [
 ];
 
 class LangProvider extends ChangeNotifier {
-  String _lang = 'ta';
+  String _lang = 'en';
   Map<String, dynamic> _t = {};
+  bool isLoading = true;
 
   String get lang => _lang;
   Map<String, dynamic> get t => _t;
 
   LangProvider() {
-    _load('ta');
+    _loadSaved();
+  }
+
+  // Load saved language from SharedPreferences on startup
+  Future<void> _loadSaved() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getString('app_language') ?? 'en';
+      await _load(saved);
+    } catch (_) {
+      await _load('en');
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
   }
 
   Future<void> setLanguage(String code) async {

@@ -16,6 +16,8 @@ dependencies:
   provider: ^6.1.0
   intl: ^0.20.0
   cupertino_icons: ^1.0.8
+  pdf: ^3.11.0
+  printing: ^5.13.0
   share_plus: ^10.0.0
   google_mobile_ads: ^5.1.0
   sendotp_flutter_sdk: ^0.0.2
