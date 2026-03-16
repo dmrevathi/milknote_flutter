@@ -410,6 +410,27 @@ class _MonthlyReportScreenState extends State<MonthlyReportScreen> {
         actions: _records.isNotEmpty
             ? [
                 IconButton(
+                  icon: const Icon(Icons.bug_report),
+                  tooltip: 'Debug',
+                  onPressed: () {
+                    showDialog(
+                        context: context,
+                        builder: (_) => AlertDialog(
+                              title: const Text('Record Debug'),
+                              content: SingleChildScrollView(
+                                child: Text(_records.isNotEmpty
+                                    ? _records.first.toString()
+                                    : 'No records'),
+                              ),
+                              actions: [
+                                TextButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    child: const Text('OK'))
+                              ],
+                            ));
+                  },
+                ),
+                IconButton(
                   icon: const Icon(Icons.picture_as_pdf),
                   tooltip: 'Export PDF',
                   onPressed: _exportPdf,
