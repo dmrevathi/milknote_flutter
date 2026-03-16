@@ -24,11 +24,14 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> saveLogin(String t, String uid, String rid) async {
+  Future<void> saveLogin(String t, String uid, String rid,
+      {String name = '', String phone = ''}) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('token', t);
     await prefs.setString('current_user_id', uid);
     await prefs.setString('role_id', rid);
+    if (name.isNotEmpty) await prefs.setString('milk_person_name', name);
+    if (phone.isNotEmpty) await prefs.setString('milk_person_phone', phone);
     token = t;
     userId = uid;
     roleId = rid;

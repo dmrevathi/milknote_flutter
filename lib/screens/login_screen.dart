@@ -44,13 +44,17 @@ class _LoginScreenState extends State<LoginScreen> {
     }
     setState(() => _loading = true);
     try {
-      final res = await ApiService.login(_phoneCtrl.text.trim(), _passCtrl.text);
+      final res =
+          await ApiService.login(_phoneCtrl.text.trim(), _passCtrl.text);
       if (res['success'] == true || res['token'] != null) {
         final auth = context.read<AuthProvider>();
         await auth.saveLogin(
           res['token'],
           res['user']['id'].toString(),
           res['user']['role_id'].toString(),
+          name: res['user']['name']?.toString() ?? '',
+          phone:
+              res['user']['phone_number']?.toString() ?? _phoneCtrl.text.trim(),
         );
         if (!mounted) return;
         final roleId = res['user']['role_id'].toString();
@@ -66,8 +70,8 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _showError(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(msg), backgroundColor: kRed));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(msg), backgroundColor: kRed));
   }
 
   @override
@@ -96,10 +100,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     value: lang.lang,
                     underline: const SizedBox(),
                     isDense: true,
-                    items: kLanguages.map((l) => DropdownMenuItem(
-                      value: l['code'],
-                      child: Text(l['label']!, style: const TextStyle(fontSize: 14)),
-                    )).toList(),
+                    items: kLanguages
+                        .map((l) => DropdownMenuItem(
+                              value: l['code'],
+                              child: Text(l['label']!,
+                                  style: const TextStyle(fontSize: 14)),
+                            ))
+                        .toList(),
                     onChanged: (code) {
                       if (code != null) lang.setLanguage(code);
                     },
@@ -108,14 +115,20 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
 
               const SizedBox(height: 20),
-              const Text('🥛', textAlign: TextAlign.center, style: TextStyle(fontSize: 56)),
+              const Text('🥛',
+                  textAlign: TextAlign.center, style: TextStyle(fontSize: 56)),
               const SizedBox(height: 8),
-              const Text('MilkNote', textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 30, fontWeight: FontWeight.w800, color: kGreen)),
+              const Text('Milk Note',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      fontSize: 30,
+                      fontWeight: FontWeight.w800,
+                      color: kGreen)),
               const SizedBox(height: 36),
 
               Text(lang.tr('login', 'phoneLabel'),
-                  style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black54)),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w600, color: Colors.black54)),
               const SizedBox(height: 6),
               TextField(
                 controller: _phoneCtrl,
@@ -127,17 +140,20 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 14),
 
               Text(lang.tr('login', 'passwordLabel'),
-                  style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black54)),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w600, color: Colors.black54)),
               const SizedBox(height: 6),
               TextField(
                 controller: _passCtrl,
                 obscureText: true,
-                decoration: InputDecoration(hintText: lang.tr('login', 'passwordLabel')),
+                decoration: InputDecoration(
+                    hintText: lang.tr('login', 'passwordLabel')),
               ),
               const SizedBox(height: 20),
 
               _loading
-                  ? const Center(child: CircularProgressIndicator(color: kGreen))
+                  ? const Center(
+                      child: CircularProgressIndicator(color: kGreen))
                   : ElevatedButton(
                       onPressed: _login,
                       child: Text(lang.tr('login', 'login'))),
@@ -148,20 +164,22 @@ class _LoginScreenState extends State<LoginScreen> {
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: kGreen, width: 1.5),
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
                 ),
                 child: Text(lang.tr('login', 'register'),
                     style: const TextStyle(color: kGreen)),
               ),
 
-
               const SizedBox(height: 28),
               Container(
                 padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(color: kGreen, borderRadius: BorderRadius.circular(10)),
+                decoration: BoxDecoration(
+                    color: kGreen, borderRadius: BorderRadius.circular(10)),
                 child: Text(
                   lang.tr('login', 'footer'),
-                  style: const TextStyle(color: Colors.white, fontSize: 13, height: 1.5),
+                  style: const TextStyle(
+                      color: Colors.white, fontSize: 13, height: 1.5),
                   textAlign: TextAlign.center,
                 ),
               ),
