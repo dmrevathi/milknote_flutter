@@ -106,7 +106,11 @@ class _SignupScreenState extends State<SignupScreen> {
     // Add all keys from sendOTP response to verifyOTP
     _sendOtpResponse.forEach((key, value) {
       if (value != null && value.toString().isNotEmpty) {
-        verifyParams[key.toString()] = value;
+        if (key.toString() == 'message') {
+          verifyParams['reqId'] = value;
+        } else {
+          verifyParams[key.toString()] = value;
+        }
       }
     });
 
@@ -249,7 +253,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   value: _role.isEmpty ? null : _role,
                   isExpanded: true,
                   underline: const SizedBox(),
-                  hint: const Text('-- தேர்வு  --'),
+                  hint: const Text('-- தேர்வு --'),
                   items: const [
                     DropdownMenuItem(value: '2', child: Text('பால்காரர்')),
                     DropdownMenuItem(value: '3', child: Text('மாட்டுக்காரர்')),
