@@ -62,10 +62,13 @@ class _AppDrawer extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Image.asset(
-                    'assets/icon/app_icon.png',
-                    width: 52,
-                    height: 52,
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.asset(
+                      'assets/icon/app_icon.png',
+                      width: 56,
+                      height: 56,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   const Text('Milk Note',
