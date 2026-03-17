@@ -263,9 +263,9 @@ class _SignupScreenState extends State<SignupScreen> {
               TextField(
                   controller: _otpCtrl,
                   keyboardType: TextInputType.number,
-                  maxLength: 6,
+                  maxLength: 4,
                   decoration: const InputDecoration(
-                      hintText: '6-digit OTP', counterText: '')),
+                      hintText: '4-digit OTP', counterText: '')),
               const SizedBox(height: 20),
               ElevatedButton(
                   onPressed: _verifyOtp,

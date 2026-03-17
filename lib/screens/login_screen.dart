@@ -115,8 +115,13 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
 
               const SizedBox(height: 20),
-              const Text('🥛',
-                  textAlign: TextAlign.center, style: TextStyle(fontSize: 56)),
+              Center(
+                child: Image.asset(
+                  'assets/icon/app_icon.png',
+                  width: 96,
+                  height: 96,
+                ),
+              ),
               const SizedBox(height: 8),
               const Text('Milk Note',
                   textAlign: TextAlign.center,
