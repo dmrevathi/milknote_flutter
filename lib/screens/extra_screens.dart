@@ -420,16 +420,19 @@ class _CowMonthlyScreenState extends State<CowMonthlyScreen> {
                 ),
         ),
         if (_total > 0)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            color: kGreen,
-            child: Text('மொத்த பால்: $_total லிட்டர்',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16)),
+          SafeArea(
+            top: false,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              color: kGreen,
+              child: Text('மொத்த பால்: $_total லிட்டர்',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16)),
+            ),
           ),
       ]),
     );
