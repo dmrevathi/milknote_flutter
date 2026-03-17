@@ -166,7 +166,6 @@ class _MonthlyReportScreenState extends State<MonthlyReportScreen> {
   bool _loadingPersons = true;
   bool _loadingReport = false;
   String _milkPersonName = '';
-  String _milkPersonPhone = '';
 
   @override
   void initState() {
@@ -178,11 +177,6 @@ class _MonthlyReportScreenState extends State<MonthlyReportScreen> {
     setState(() => _loadingPersons = true);
     try {
       final auth = context.read<AuthProvider>();
-      // Get milk person name from prefs
-      final prefs = await SharedPreferences.getInstance();
-      _milkPersonName =
-          prefs.getString('milk_person_name') ?? auth.userId ?? '';
-      _milkPersonPhone = prefs.getString('milk_person_phone') ?? '';
       final data = await ApiService.getCowPersonList(auth.userId!);
       setState(() {
         _persons = data is List ? data : [];
@@ -398,34 +392,13 @@ class _MonthlyReportScreenState extends State<MonthlyReportScreen> {
   Widget build(BuildContext context) {
     final t = context.watch<LangProvider>().t;
     final auth = context.read<AuthProvider>();
-    // milkPersonName already set in _fetchPersons
+    _milkPersonName = auth.userId ?? '';
 
     return Scaffold(
       appBar: MilkNoteAppBar(
         title: t['sideBar']?['monthlyMilkRecord'] ?? 'Monthly Milk',
         actions: _records.isNotEmpty
             ? [
-                IconButton(
-                  icon: const Icon(Icons.bug_report),
-                  tooltip: 'Debug',
-                  onPressed: () {
-                    showDialog(
-                        context: context,
-                        builder: (_) => AlertDialog(
-                              title: const Text('Record Debug'),
-                              content: SingleChildScrollView(
-                                child: Text(_records.isNotEmpty
-                                    ? _records.first.toString()
-                                    : 'No records'),
-                              ),
-                              actions: [
-                                TextButton(
-                                    onPressed: () => Navigator.pop(context),
-                                    child: const Text('OK'))
-                              ],
-                            ));
-                  },
-                ),
                 IconButton(
                   icon: const Icon(Icons.picture_as_pdf),
                   tooltip: 'Export PDF',
@@ -460,7 +433,6 @@ class _MonthlyReportScreenState extends State<MonthlyReportScreen> {
                       .toList(),
                   onChanged: (v) => setState(() {
                     _selected = v;
-                    _milkPersonName = v?['name'] ?? '';
                   }),
                 ),
               ),
@@ -505,7 +477,8 @@ class _MonthlyReportScreenState extends State<MonthlyReportScreen> {
           child: _records.isEmpty
               ? Center(
                   child: Text(
-                      t['monthlyMilkReport']?['errorMsg'] ?? 'No records',
+                      t['monthlyMilkReport']?['select_cow_person'] ??
+                          'Select cow person and month',
                       style: const TextStyle(color: Colors.grey)))
               : ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 12),

@@ -22,9 +22,8 @@ class _SignupScreenState extends State<SignupScreen> {
   final _confirmCtrl = TextEditingController();
   String _role = '';
   String _msg91AccessToken = '';
-  String _reqId = '';
-  bool _loading = false;
   String _debugLog = '';
+  Map<dynamic, dynamic> _sendOtpResponse = {}; // store full sendOTP response
 
   @override
   void initState() {
@@ -34,23 +33,34 @@ class _SignupScreenState extends State<SignupScreen> {
 
   @override
   void dispose() {
-    _nameCtrl.dispose(); _phoneCtrl.dispose(); _otpCtrl.dispose();
-    _passCtrl.dispose(); _confirmCtrl.dispose();
+    _nameCtrl.dispose();
+    _phoneCtrl.dispose();
+    _otpCtrl.dispose();
+    _passCtrl.dispose();
+    _confirmCtrl.dispose();
     super.dispose();
   }
 
-  void _showError(String msg) =>
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(msg), backgroundColor: kRed));
+  void _showError(String msg) => ScaffoldMessenger.of(context)
+      .showSnackBar(SnackBar(content: Text(msg), backgroundColor: kRed));
 
   Future<void> _sendOtp() async {
-    if (_nameCtrl.text.trim().isEmpty) { _showError('Name required'); return; }
-    if (!RegExp(r'^\d{10}$').hasMatch(_phoneCtrl.text)) {
-      _showError('Enter valid 10-digit phone'); return;
+    if (_nameCtrl.text.trim().isEmpty) {
+      _showError('Name required');
+      return;
     }
-    if (_role.isEmpty) { _showError('Select role'); return; }
+    if (!RegExp(r'^\d{10}$').hasMatch(_phoneCtrl.text)) {
+      _showError('Enter valid 10-digit phone');
+      return;
+    }
+    if (_role.isEmpty) {
+      _showError('Select role');
+      return;
+    }
 
-    setState(() => _loading = true);
+    setState(() {
+      _debugLog = 'Sending OTP...';
+    });
     try {
       final res = await ApiService.checkAccountExists(_phoneCtrl.text);
       if (res['status'] == true) {
@@ -62,69 +72,76 @@ class _SignupScreenState extends State<SignupScreen> {
         'identifier': '91${_phoneCtrl.text}',
       });
 
-      debugPrint('sendOTP response: $response');
-      setState(() => _debugLog = 'sendOTP: $response');
+      debugPrint('sendOTP full response: $response');
+      setState(() {
+        _sendOtpResponse = response ?? {};
+        _debugLog = 'sendOTP: $response';
+      });
 
       if (response != null) {
-        // Store reqId - required for verifyOTP
-        _reqId = response['reqId']?.toString()
-            ?? response['request_id']?.toString()
-            ?? response['message']?.toString()
-            ?? '';
-        debugPrint('sendOTP reqId: $_reqId');
-        setState(() => _debugLog = 'sendOTP: $_reqId | full: $response');
         setState(() => _step = 2);
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('OTP sent! ✅'), backgroundColor: kGreen));
+        if (mounted)
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text('OTP sent! ✅'), backgroundColor: kGreen));
       } else {
         _showError('OTP send failed! Call 8825401886');
       }
     } catch (e) {
       _showError(e.toString());
-    } finally {
-      if (mounted) setState(() => _loading = false);
     }
   }
 
   Future<void> _verifyOtp() async {
-    if (_otpCtrl.text.trim().isEmpty) { _showError('Enter OTP'); return; }
+    if (_otpCtrl.text.trim().isEmpty) {
+      _showError('Enter OTP');
+      return;
+    }
 
-    setState(() => _loading = true);
+    // Build verifyOTP params - pass ALL keys from sendOTP response
+    final verifyParams = <String, dynamic>{
+      'identifier': '91${_phoneCtrl.text}',
+      'otp': _otpCtrl.text.trim(),
+    };
+
+    // Add all keys from sendOTP response to verifyOTP
+    _sendOtpResponse.forEach((key, value) {
+      if (value != null && value.toString().isNotEmpty) {
+        verifyParams[key.toString()] = value;
+      }
+    });
+
+    debugPrint('verifyOTP params: $verifyParams');
+    setState(() => _debugLog = 'verifyOTP params: $verifyParams');
+
     try {
-      final response = await OTPWidget.verifyOTP({
-        'identifier': '91${_phoneCtrl.text}',
-        'otp': _otpCtrl.text.trim(),
-      });
+      final response = await OTPWidget.verifyOTP(verifyParams);
 
       debugPrint('verifyOTP response: $response');
       setState(() => _debugLog = 'verifyOTP: $response');
 
       if (response != null && response['type'] == 'success') {
-        // 'message' contains the JWT access token (phone number format)
         _msg91AccessToken = response['message']?.toString() ?? '';
-        debugPrint('✅ Access token: $_msg91AccessToken');
         setState(() => _step = 3);
       } else {
         final errMsg = response?['message']?.toString() ?? 'Unknown error';
         _showError('Invalid OTP: $errMsg');
       }
     } catch (e) {
-      debugPrint('OTP verify error: $e');
+      debugPrint('verifyOTP error: $e');
       _showError('Verification failed: $e');
-    } finally {
-      if (mounted) setState(() => _loading = false);
     }
   }
 
   Future<void> _register() async {
     if (_passCtrl.text.length < 4) {
-      _showError('Password must be at least 4 characters'); return;
+      _showError('Password must be at least 4 characters');
+      return;
     }
     if (_passCtrl.text != _confirmCtrl.text) {
-      _showError('Passwords do not match'); return;
+      _showError('Passwords do not match');
+      return;
     }
 
-    setState(() => _loading = true);
     try {
       final res = await ApiService.registerPerson(
         _phoneCtrl.text,
@@ -134,24 +151,30 @@ class _SignupScreenState extends State<SignupScreen> {
         msg91token: _msg91AccessToken,
       );
 
-      debugPrint('registerPerson response: $res');
-
       if (res['success'] == true) {
         if (!mounted) return;
-        showDialog(context: context, builder: (_) => AlertDialog(
-          title: const Text('வெற்றி! ✅'),
-          content: const Text('பதிவு வெற்றிகரமாக முடிந்தது! உள்நுழையவும்.'),
-          actions: [TextButton(
-              onPressed: () { Navigator.pop(context); context.go('/login'); },
-              child: const Text('OK'))],
-        ));
+        showDialog(
+            context: context,
+            builder: (_) => AlertDialog(
+                  title: const Text('வெற்றி! ✅'),
+                  content:
+                      const Text('பதிவு வெற்றிகரமாக முடிந்தது! உள்நுழையவும்.'),
+                  actions: [
+                    TextButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          context.go('/login');
+                        },
+                        child: const Text('OK'))
+                  ],
+                ));
       } else {
-        _showError(res['message'] ?? res['error'] ?? 'Registration failed. Call 8825401886');
+        _showError(res['message'] ??
+            res['error'] ??
+            'Registration failed. Call 8825401886');
       }
     } catch (e) {
       _showError(e.toString());
-    } finally {
-      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -165,7 +188,7 @@ class _SignupScreenState extends State<SignupScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Debug log — remove before Play Store release
+            // Debug box
             if (_debugLog.isNotEmpty)
               Container(
                 margin: const EdgeInsets.only(bottom: 12),
@@ -175,8 +198,10 @@ class _SignupScreenState extends State<SignupScreen> {
                     borderRadius: BorderRadius.circular(8)),
                 child: SelectableText(
                   _debugLog,
-                  style: const TextStyle(color: Colors.greenAccent,
-                      fontSize: 11, fontFamily: 'monospace'),
+                  style: const TextStyle(
+                      color: Colors.greenAccent,
+                      fontSize: 11,
+                      fontFamily: 'monospace'),
                 ),
               ),
 
@@ -185,7 +210,8 @@ class _SignupScreenState extends State<SignupScreen> {
               for (int i = 1; i <= 3; i++) ...[
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 300),
-                  width: 32, height: 4,
+                  width: 32,
+                  height: 4,
                   decoration: BoxDecoration(
                     color: _step >= i ? kGreen : Colors.grey.shade300,
                     borderRadius: BorderRadius.circular(2),
@@ -196,28 +222,33 @@ class _SignupScreenState extends State<SignupScreen> {
             ]),
             const SizedBox(height: 24),
 
-            // Step 1 — Name, Phone, Role
             if (_step == 1) ...[
               _label('பெயர்'),
-              TextField(controller: _nameCtrl,
-                  decoration: const InputDecoration(hintText: 'Name & Village')),
+              TextField(
+                  controller: _nameCtrl,
+                  decoration:
+                      const InputDecoration(hintText: 'Name & Village')),
               const SizedBox(height: 14),
               _label('போன் நம்பர்'),
-              TextField(controller: _phoneCtrl,
-                  keyboardType: TextInputType.phone, maxLength: 10,
+              TextField(
+                  controller: _phoneCtrl,
+                  keyboardType: TextInputType.phone,
+                  maxLength: 10,
                   decoration: const InputDecoration(
                       hintText: '10-digit number', counterText: '')),
               const SizedBox(height: 14),
               _label('நீங்கள் யார்?'),
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.white, borderRadius: BorderRadius.circular(10),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: Colors.grey.shade400, width: 1.5),
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: DropdownButton<String>(
                   value: _role.isEmpty ? null : _role,
-                  isExpanded: true, underline: const SizedBox(),
+                  isExpanded: true,
+                  underline: const SizedBox(),
                   hint: const Text('-- தேர்வு --'),
                   items: const [
                     DropdownMenuItem(value: '2', child: Text('பால்காரர்')),
@@ -227,14 +258,10 @@ class _SignupScreenState extends State<SignupScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              _loading
-                  ? const Center(child: CircularProgressIndicator(color: kGreen))
-                  : ElevatedButton(
-                      onPressed: _sendOtp,
-                      child: const Text('OTP அனுப்பு')),
+              ElevatedButton(
+                  onPressed: _sendOtp, child: const Text('OTP அனுப்பு')),
             ],
 
-            // Step 2 — OTP verify
             if (_step == 2) ...[
               Text('+91${_phoneCtrl.text} க்கு OTP அனுப்பப்பட்டது',
                   textAlign: TextAlign.center,
@@ -242,28 +269,25 @@ class _SignupScreenState extends State<SignupScreen> {
                       color: kGreen, fontWeight: FontWeight.w600)),
               const SizedBox(height: 16),
               _label('OTP உள்ளிடவும்'),
-              TextField(controller: _otpCtrl,
-                  keyboardType: TextInputType.number, maxLength: 6,
+              TextField(
+                  controller: _otpCtrl,
+                  keyboardType: TextInputType.number,
+                  maxLength: 6,
                   decoration: const InputDecoration(
                       hintText: '6-digit OTP', counterText: '')),
               const SizedBox(height: 20),
-              _loading
-                  ? const Center(child: CircularProgressIndicator(color: kGreen))
-                  : ElevatedButton(
-                      onPressed: _verifyOtp,
-                      child: const Text('OTP சரிபார்')),
+              ElevatedButton(
+                  onPressed: _verifyOtp, child: const Text('OTP சரிபார்')),
               const SizedBox(height: 10),
               Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                 TextButton(
                     onPressed: () => setState(() => _step = 1),
                     child: const Text('← Back')),
                 TextButton(
-                    onPressed: _loading ? null : _sendOtp,
-                    child: const Text('Resend OTP')),
+                    onPressed: _sendOtp, child: const Text('Resend OTP')),
               ]),
             ],
 
-            // Step 3 — Password
             if (_step == 3) ...[
               Container(
                 padding: const EdgeInsets.all(12),
@@ -279,18 +303,21 @@ class _SignupScreenState extends State<SignupScreen> {
                 ),
               ),
               _label('கடவுச்சொல்'),
-              TextField(controller: _passCtrl, obscureText: true,
-                  decoration: const InputDecoration(hintText: 'Min 4 characters')),
+              TextField(
+                  controller: _passCtrl,
+                  obscureText: true,
+                  decoration:
+                      const InputDecoration(hintText: 'Min 4 characters')),
               const SizedBox(height: 14),
               _label('கடவுச்சொல் மீண்டும்'),
-              TextField(controller: _confirmCtrl, obscureText: true,
-                  decoration: const InputDecoration(hintText: 'Repeat password')),
+              TextField(
+                  controller: _confirmCtrl,
+                  obscureText: true,
+                  decoration:
+                      const InputDecoration(hintText: 'Repeat password')),
               const SizedBox(height: 20),
-              _loading
-                  ? const Center(child: CircularProgressIndicator(color: kGreen))
-                  : ElevatedButton(
-                      onPressed: _register,
-                      child: const Text('என்னை பதிவு செய்')),
+              ElevatedButton(
+                  onPressed: _register, child: const Text('என்னை பதிவு செய்')),
             ],
           ],
         ),
@@ -300,6 +327,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
   Widget _label(String text) => Padding(
       padding: const EdgeInsets.only(bottom: 6),
-      child: Text(text, style: const TextStyle(
-          fontWeight: FontWeight.w600, color: Colors.black54)));
+      child: Text(text,
+          style: const TextStyle(
+              fontWeight: FontWeight.w600, color: Colors.black54)));
 }
