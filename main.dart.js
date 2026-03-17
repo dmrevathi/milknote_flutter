@@ -31254,7 +31254,7 @@ return B.z(B.mR(),$async$fb)
 case 5:p=j.cq(d.a.h(0,"token"))
 if(p!=null)k.m(0,"Authorization","Bearer "+p)
 case 4:s=6
-return B.z(B.aRt(B.dk("https://api.tamilstatus.com/milknote/v1/index.php",0,null),A.bM.LF(a,null),k),$async$fb)
+return B.z(B.aRt(B.dk("https://www.bluebro7.com/api/milknote/v1/index.php",0,null),A.bM.LF(a,null),k),$async$fb)
 case 6:o=d
 n=o.b
 if(n!==200)throw B.i(B.cE("Server error: "+n))
