@@ -1,7 +1,7 @@
 name: milknote
 description: Milk record tracking app for dairy farmers
 publish_to: "none"
-version: 1.0.14+14
+version: 1.0.0+1
 
 environment:
   sdk: "^3.11.0"
