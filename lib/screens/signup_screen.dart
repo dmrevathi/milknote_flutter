@@ -22,6 +22,7 @@ class _SignupScreenState extends State<SignupScreen> {
   final _confirmCtrl = TextEditingController();
   String _role = '';
   String _msg91AccessToken = '';
+  String _reqId = '';
   bool _loading = false;
   String _debugLog = '';
 
@@ -65,6 +66,13 @@ class _SignupScreenState extends State<SignupScreen> {
       setState(() => _debugLog = 'sendOTP: $response');
 
       if (response != null) {
+        // Store reqId - required for verifyOTP
+        _reqId = response['reqId']?.toString()
+            ?? response['request_id']?.toString()
+            ?? response['message']?.toString()
+            ?? '';
+        debugPrint('sendOTP reqId: $_reqId');
+        setState(() => _debugLog = 'sendOTP: $_reqId | full: $response');
         setState(() => _step = 2);
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('OTP sent! ✅'), backgroundColor: kGreen));
