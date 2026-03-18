@@ -60,26 +60,39 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
+      - name: Add Android support
+        run: flutter create . --platforms=android --org com.milknote --project-name milknote
+
+      - name: Set package name to com.milknote.app
+        run: |
+          find android -name "build.gradle.kts" -o -name "build.gradle" | xargs grep -l "applicationId" | while read f; do
+            sed -i 's/applicationId = ".*"/applicationId = "com.milknote.app"/' "$f"
+            sed -i 's/applicationId ".*"/applicationId "com.milknote.app"/' "$f"
+          done
+          echo "Package name:"
+          grep -r "applicationId" android/
+
+      - name: Set app name to Milk Note
+        run: |
+          sed -i 's|android:label="[^"]*"|android:label="Milk Note"|g' android/app/src/main/AndroidManifest.xml
+          mkdir -p android/app/src/main/res/values
+          echo '<?xml version="1.0" encoding="utf-8"?><resources><string name="app_name">Milk Note</string></resources>' > android/app/src/main/res/values/strings.xml
+
+      - name: Generate launcher icons
+        run: dart run flutter_launcher_icons
+
       - name: Add AdMob App ID
         run: |
-          MANIFEST="android/app/src/main/AndroidManifest.xml"
-          sed -i 's|</application>|    <meta-data\n            android:name="com.google.android.gms.ads.APPLICATION_ID"\n            android:value="ca-app-pub-7800736979145298~5787058699"/>\n    </application>|' $MANIFEST
+          sed -i 's|</application>|    <meta-data\n            android:name="com.google.android.gms.ads.APPLICATION_ID"\n            android:value="ca-app-pub-7800736979145298~5787058699"/>\n    </application>|' android/app/src/main/AndroidManifest.xml
 
       - name: Decode keystore
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/milknote.jks
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | tr -d '\n\r ' | base64 --decode > android/app/milknote.jks
           echo "Keystore size: $(wc -c < android/app/milknote.jks) bytes"
-
-      - name: Create key.properties
-        run: |
-          printf 'storePassword=${{ secrets.STORE_PASSWORD }}\nkeyPassword=${{ secrets.KEY_PASSWORD }}\nkeyAlias=${{ secrets.KEY_ALIAS }}\nstoreFile=milknote.jks\n' > android/key.properties
-          echo "key.properties created:"
-          cat android/key.properties
 
       - name: Build release AAB
         run: |
           flutter build appbundle --release \
-            --dart-define=STORE_PASSWORD=${{ secrets.STORE_PASSWORD }} \
             -P android.injected.signing.store.file=$(pwd)/android/app/milknote.jks \
             -P android.injected.signing.store.password=${{ secrets.STORE_PASSWORD }} \
             -P android.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
