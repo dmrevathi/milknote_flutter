@@ -76,79 +76,22 @@ jobs:
           echo "key.properties created:"
           cat android/key.properties
 
-      - name: Configure signing in build.gradle
-        run: |
-          python3 << 'PYEOF'
-          import re, os
-
-          kts = 'android/app/build.gradle.kts'
-          groovy = 'android/app/build.gradle'
-          gradle_file = kts if os.path.exists(kts) else groovy
-          is_kts = gradle_file.endswith('.kts')
-
-          with open(gradle_file, 'r') as f:
-              content = f.read()
-
-          # Skip if already configured
-          if 'keystoreProperties' in content:
-              print('Signing already configured, skipping')
-              exit(0)
-
-          if is_kts:
-              keystore_props = '''import java.util.Properties
-          import java.io.FileInputStream
-
-          val keystorePropertiesFile = rootProject.file("key.properties")
-          val keystoreProperties = Properties().apply {
-              if (keystorePropertiesFile.exists()) load(FileInputStream(keystorePropertiesFile))
-          }
-
-          '''
-              signing_config = '''
-              signingConfigs {
-                  create("release") {
-                      keyAlias = keystoreProperties.getProperty("keyAlias")
-                      keyPassword = keystoreProperties.getProperty("keyPassword")
-                      storeFile = file(keystoreProperties.getProperty("storeFile"))
-                      storePassword = keystoreProperties.getProperty("storePassword")
-                  }
-              }
-          '''
-              content = keystore_props + content
-              content = content.replace('buildTypes {', signing_config + '    buildTypes {', 1)
-              content = re.sub(r'(release\s*\{)', r'\1\n            signingConfig = signingConfigs.getByName("release")', content, count=1)
-          else:
-              keystore_props = '''def keystoreProperties = new Properties()
-          def keystorePropertiesFile = rootProject.file('key.properties')
-          if (keystorePropertiesFile.exists()) {
-              keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
-          }
-
-          '''
-              signing_config = '''
-              signingConfigs {
-                  release {
-                      keyAlias keystoreProperties['keyAlias']
-                      keyPassword keystoreProperties['keyPassword']
-                      storeFile file(keystoreProperties['storeFile'])
-                      storePassword keystoreProperties['storePassword']
-                  }
-              }
-          '''
-              content = content.replace('android {', keystore_props + 'android {', 1)
-              content = content.replace('buildTypes {', signing_config + '    buildTypes {', 1)
-              content = re.sub(r'(release\s*\{)', r'\1\n            signingConfig signingConfigs.release', content, count=1)
-
-          with open(gradle_file, 'w') as f:
-              f.write(content)
-          print(f'✅ Signing configured in {gradle_file}')
-          PYEOF
-
       - name: Build release AAB
-        run: flutter build appbundle --release
+        run: |
+          flutter build appbundle --release \
+            --dart-define=STORE_PASSWORD=${{ secrets.STORE_PASSWORD }} \
+            -P android.injected.signing.store.file=$(pwd)/android/app/milknote.jks \
+            -P android.injected.signing.store.password=${{ secrets.STORE_PASSWORD }} \
+            -P android.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
+            -P android.injected.signing.key.password=${{ secrets.KEY_PASSWORD }}
 
       - name: Build release APK
-        run: flutter build apk --release
+        run: |
+          flutter build apk --release \
+            -P android.injected.signing.store.file=$(pwd)/android/app/milknote.jks \
+            -P android.injected.signing.store.password=${{ secrets.STORE_PASSWORD }} \
+            -P android.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} \
+            -P android.injected.signing.key.password=${{ secrets.KEY_PASSWORD }}
 
       - name: Upload AAB (Play Store)
         uses: actions/upload-artifact@v4
