@@ -2,9 +2,9 @@ name: Build Flutter
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [main, master]
   pull_request:
-    branches: [ main, master ]
+    branches: [main, master]
   workflow_dispatch:
 
 env:
@@ -22,8 +22,8 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.41.4'
-          channel: 'stable'
+          flutter-version: "3.41.4"
+          channel: "stable"
 
       - name: Get dependencies
         run: flutter pub get
@@ -49,13 +49,13 @@ jobs:
 
       - uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
-          java-version: '17'
+          distribution: "zulu"
+          java-version: "17"
 
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.41.4'
-          channel: 'stable'
+          flutter-version: "3.41.4"
+          channel: "stable"
 
       - name: Get dependencies
         run: flutter pub get
@@ -72,12 +72,7 @@ jobs:
 
       - name: Create key.properties
         run: |
-          cat > android/key.properties <<EOF
-storePassword=${{ secrets.STORE_PASSWORD }}
-keyPassword=${{ secrets.KEY_PASSWORD }}
-keyAlias=${{ secrets.KEY_ALIAS }}
-storeFile=milknote.jks
-EOF
+          printf 'storePassword=${{ secrets.STORE_PASSWORD }}\nkeyPassword=${{ secrets.KEY_PASSWORD }}\nkeyAlias=${{ secrets.KEY_ALIAS }}\nstoreFile=milknote.jks\n' > android/key.properties
           echo "key.properties created:"
           cat android/key.properties
 
