@@ -266,17 +266,25 @@ class _DistDailyScreenState extends State<DistDailyScreen> {
           Expanded(child: _body()),
         ],
       ),
-      bottomNavigationBar: _rows.isEmpty
-          ? null
-          : SafeArea(
-              child: Padding(
+      bottomNavigationBar: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_rows.isNotEmpty)
+              Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                child: ElevatedButton(
-                  onPressed: _saving ? null : _save,
-                  child: Text(_saving ? 'Saving…' : 'Save'),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _saving ? null : _save,
+                    child: Text(_saving ? 'Saving…' : 'Save'),
+                  ),
                 ),
               ),
-            ),
+            const KeyboardAwareBanner(),
+          ],
+        ),
+      ),
     );
   }
 

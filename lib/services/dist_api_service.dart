@@ -23,7 +23,8 @@ double toD(dynamic v) =>
     v is num ? v.toDouble() : (double.tryParse(v?.toString() ?? '') ?? 0);
 
 /// 20.0 -> "20", 1.50 -> "1.5", 0.25 -> "0.25"
-String fmtNum(num n) => n.toStringAsFixed(2).replaceFirst(RegExp(r'\.?0+$'), '');
+String fmtNum(num n) =>
+    n.toStringAsFixed(2).replaceFirst(RegExp(r'\.?0+$'), '');
 
 String ymd(DateTime d) => DateFormat('yyyy-MM-dd').format(d);
 String ym(DateTime d) => DateFormat('yyyy-MM').format(d);
@@ -58,9 +59,12 @@ class DistApi {
       // Not JSON: show the start of what the server really sent, so the
       // real cause (PHP error text, HTML page, ...) is visible.
       final snippet = response.body.replaceAll(RegExp(r'\s+'), ' ').trim();
-      final shown = snippet.length > 160 ? '${snippet.substring(0, 160)}…' : snippet;
+      final shown = snippet.length > 160
+          ? '${snippet.substring(0, 160)}…'
+          : snippet;
       throw Exception(
-          'Server error: ${response.statusCode}${shown.isEmpty ? ' (empty response)' : ' – $shown'}');
+        'Server error: ${response.statusCode}${shown.isEmpty ? ' (empty response)' : ' – $shown'}',
+      );
     }
     return data;
   }
@@ -73,16 +77,15 @@ class DistApi {
     required String address,
     required double price,
     String? effectiveFrom,
-  }) =>
-      _post({
-        'action': 'add_consumer',
-        'name': name,
-        'phone': phone,
-        'password': password,
-        'address': address,
-        'price': price,
-        if (effectiveFrom != null) 'effective_from': effectiveFrom,
-      });
+  }) => _post({
+    'action': 'add_consumer',
+    'name': name,
+    'phone': phone,
+    'password': password,
+    'address': address,
+    'price': price,
+    if (effectiveFrom != null) 'effective_from': effectiveFrom,
+  });
 
   static Future<List<Map<String, dynamic>>> customerList() async {
     final res = await _post({'action': 'customer_list'});
@@ -93,23 +96,25 @@ class DistApi {
 
   /// Pass only what should change. `name` is allowed only for accounts the
   /// distributor created (the server enforces this).
-  static Future<void> updateCustomer(int customerId,
-          {String? name, String? address}) =>
-      _post({
-        'action': 'update_customer',
-        'customer_id': customerId,
-        if (name != null) 'name': name,
-        if (address != null) 'address': address,
-      });
+  static Future<void> updateCustomer(
+    int customerId, {
+    String? name,
+    String? address,
+  }) => _post({
+    'action': 'update_customer',
+    'customer_id': customerId,
+    if (name != null) 'name': name,
+    if (address != null) 'address': address,
+  });
 
   static Future<void> removeCustomer(int customerId) =>
       _post({'action': 'remove_customer', 'customer_id': customerId});
 
   static Future<void> resetPassword(int customerId, String password) => _post({
-        'action': 'reset_password',
-        'customer_id': customerId,
-        'password': password,
-      });
+    'action': 'reset_password',
+    'customer_id': customerId,
+    'password': password,
+  });
 
   // Distributor: daily entry
   static Future<List<Map<String, dynamic>>> dailySheet(String date) async {
@@ -125,38 +130,38 @@ class DistApi {
     required String date,
     double? morning,
     double? evening,
-  }) =>
-      _post({
-        'action': 'save_entry',
-        'customer_id': customerId,
-        'date': date,
-        if (morning != null) 'morning_qty': morning,
-        if (evening != null) 'evening_qty': evening,
-      });
+  }) => _post({
+    'action': 'save_entry',
+    'customer_id': customerId,
+    'date': date,
+    if (morning != null) 'morning_qty': morning,
+    if (evening != null) 'evening_qty': evening,
+  });
 
   // Distributor: price and payments
   static Future<void> setPrice(
-          int customerId, String effectiveFrom, double price) =>
-      _post({
-        'action': 'set_price',
-        'customer_id': customerId,
-        'effective_from': effectiveFrom,
-        'price': price,
-      });
+    int customerId,
+    String effectiveFrom,
+    double price,
+  ) => _post({
+    'action': 'set_price',
+    'customer_id': customerId,
+    'effective_from': effectiveFrom,
+    'price': price,
+  });
 
   static Future<void> addPayment({
     required int customerId,
     required double amount,
     required String date,
     required String forMonth,
-  }) =>
-      _post({
-        'action': 'add_payment',
-        'customer_id': customerId,
-        'amount': amount,
-        'date': date,
-        'for_month': forMonth,
-      });
+  }) => _post({
+    'action': 'add_payment',
+    'customer_id': customerId,
+    'amount': amount,
+    'date': date,
+    'for_month': forMonth,
+  });
 
   static Future<void> deletePayment(int paymentId) =>
       _post({'action': 'delete_payment', 'payment_id': paymentId});

@@ -70,6 +70,7 @@ class _PaymentStatusScreenState extends State<PaymentStatusScreen> {
       appBar: MilkNoteAppBar(
         title: _isDist ? 'Payment Status' : 'My Milk Bill',
       ),
+      bottomNavigationBar: const KeyboardAwareBanner(),
       body: Column(
         children: [
           MonthSwitcher(

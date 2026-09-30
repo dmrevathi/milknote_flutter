@@ -295,6 +295,7 @@ class _DistCustomersScreenState extends State<DistCustomersScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: const MilkNoteAppBar(title: 'Customers'),
+      bottomNavigationBar: const KeyboardAwareBanner(),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _add,
         backgroundColor: kGreen,

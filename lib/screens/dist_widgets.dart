@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../services/ad_service.dart';
 import '../services/dist_api_service.dart';
 import '../theme.dart';
 
@@ -16,6 +17,19 @@ const TextInputType kDecimalKeyboard =
 final List<TextInputFormatter> kDecimalFormatters = [
   FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
 ];
+
+/// Banner ad for the bottom of a screen (use as `bottomNavigationBar`).
+/// Hidden while the keyboard is open, but kept alive so the ad is not
+/// reloaded every time the keyboard opens or closes.
+class KeyboardAwareBanner extends StatelessWidget {
+  const KeyboardAwareBanner({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final keyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
+    return Offstage(offstage: keyboardOpen, child: const BannerAdWidget());
+  }
+}
 
 /// "<  September 2026  >"  (month is "yyyy-MM")
 class MonthSwitcher extends StatelessWidget {

@@ -331,6 +331,7 @@ class _DistCardScreenState extends State<DistCardScreen> {
           ),
         ],
       ),
+      bottomNavigationBar: const KeyboardAwareBanner(),
       body: Column(
         children: [
           MonthSwitcher(
