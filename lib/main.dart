@@ -16,6 +16,12 @@ import 'screens/register_cow_screen.dart';
 import 'screens/connect_cow_screen.dart';
 import 'screens/edit_milk_screen.dart';
 import 'screens/cow_monthly_screen.dart';
+import 'screens/dist_daily_screen.dart';
+import 'screens/dist_customers_screen.dart';
+import 'screens/dist_add_customer_screen.dart';
+import 'screens/dist_card_screen.dart';
+import 'screens/payment_status_screen.dart';
+import 'services/dist_api_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -45,9 +51,7 @@ class MilkNoteApp extends StatelessWidget {
     }
 
     final router = GoRouter(
-      initialLocation: auth.isLoggedIn
-          ? (auth.isCowPerson ? '/cow-monthly' : '/add-milk')
-          : '/login',
+      initialLocation: auth.isLoggedIn ? auth.homeRoute : '/login',
       refreshListenable: auth,
       redirect: (context, state) {
         final loggedIn = auth.isLoggedIn;
@@ -56,7 +60,7 @@ class MilkNoteApp extends StatelessWidget {
 
         if (!loggedIn && !onPublic) return '/login';
         if (loggedIn && loc == '/login') {
-          return auth.isCowPerson ? '/cow-monthly' : '/add-milk';
+          return auth.homeRoute;
         }
         return null;
       },
@@ -73,10 +77,26 @@ class MilkNoteApp extends StatelessWidget {
             );
           },
         ),
+        GoRoute(
+          path: '/dist-add-customer',
+          builder: (_, __) => const DistAddCustomerScreen(),
+        ),
+        GoRoute(
+          path: '/dist-card',
+          builder: (_, state) {
+            final extra = state.extra as Map;
+            return DistCardScreen(
+              customerId: toInt(extra['customer_id']),
+              title: extra['name']?.toString() ?? '',
+              month: extra['month']?.toString(),
+            );
+          },
+        ),
         ShellRoute(
           builder: (context, state, child) => HomeScreen(
             child: child,
             isCowPerson: auth.isCowPerson,
+            roleId: auth.roleId ?? '',
           ),
           routes: [
             GoRoute(path: '/add-milk', builder: (_, __) => AddMilkScreen()),
@@ -86,6 +106,9 @@ class MilkNoteApp extends StatelessWidget {
             GoRoute(path: '/register-cow', builder: (_, __) => RegisterCowScreen()),
             GoRoute(path: '/connect-cow', builder: (_, __) => ConnectCowScreen()),
             GoRoute(path: '/cow-monthly', builder: (_, __) => CowMonthlyScreen()),
+            GoRoute(path: '/dist-daily', builder: (_, __) => const DistDailyScreen()),
+            GoRoute(path: '/dist-customers', builder: (_, __) => const DistCustomersScreen()),
+            GoRoute(path: '/pay-status', builder: (_, __) => const PaymentStatusScreen()),
           ],
         ),
       ],

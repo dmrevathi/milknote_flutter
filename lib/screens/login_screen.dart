@@ -57,8 +57,7 @@ class _LoginScreenState extends State<LoginScreen> {
               res['user']['phone_number']?.toString() ?? _phoneCtrl.text.trim(),
         );
         if (!mounted) return;
-        final roleId = res['user']['role_id'].toString();
-        context.go(roleId == '3' ? '/cow-monthly' : '/add-milk');
+        context.go(auth.homeRoute);
       } else {
         _showError(res['message'] ?? 'Login failed. Call 8825401886');
       }

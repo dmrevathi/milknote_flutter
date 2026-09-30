@@ -10,6 +10,22 @@ class AuthProvider extends ChangeNotifier {
   bool get isLoggedIn => token != null;
   bool get isMilkPerson => roleId == '2';
   bool get isCowPerson => roleId == '3';
+  bool get isDistributor => roleId == '4';
+  bool get isConsumer => roleId == '5';
+
+  /// First screen after login, per role.
+  String get homeRoute {
+    switch (roleId) {
+      case '3':
+        return '/cow-monthly';
+      case '4':
+        return '/dist-daily';
+      case '5':
+        return '/pay-status';
+      default:
+        return '/add-milk';
+    }
+  }
 
   AuthProvider() {
     _loadFromPrefs();

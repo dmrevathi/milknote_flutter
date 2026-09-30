@@ -14,14 +14,20 @@ const String _playStoreUrl =
 class HomeScreen extends StatelessWidget {
   final Widget child;
   final bool isCowPerson;
+  final String roleId;
 
-  const HomeScreen({super.key, required this.child, required this.isCowPerson});
+  const HomeScreen({
+    super.key,
+    required this.child,
+    required this.isCowPerson,
+    this.roleId = '',
+  });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       key: rootScaffoldKey,
-      drawer: _AppDrawer(isCowPerson: isCowPerson),
+      drawer: _AppDrawer(isCowPerson: isCowPerson, roleId: roleId),
       body: child,
     );
   }
@@ -29,13 +35,18 @@ class HomeScreen extends StatelessWidget {
 
 class _AppDrawer extends StatelessWidget {
   final bool isCowPerson;
-  const _AppDrawer({required this.isCowPerson});
+  final String roleId;
+  const _AppDrawer({required this.isCowPerson, required this.roleId});
 
   @override
   Widget build(BuildContext context) {
     final auth = context.read<AuthProvider>();
     final lang = context.watch<LangProvider>();
     final t = lang.t;
+    final isDistributor = roleId == '4';
+    final isConsumer = roleId == '5';
+    // Same behaviour as before for roles 2/3 (and unknown roles).
+    final isMilkPerson = !isCowPerson && !isDistributor && !isConsumer;
 
     void go(String route) {
       rootScaffoldKey.currentState?.closeDrawer();
@@ -110,7 +121,7 @@ class _AppDrawer extends StatelessWidget {
           const Divider(height: 1),
 
           // Milk person menus
-          if (!isCowPerson) ...[
+          if (isMilkPerson) ...[
             _DrawerItem(
                 icon: Icons.add_circle_outline,
                 label: t['sideBar']?['addMilkRecord'] ?? 'Add Milk',
@@ -136,6 +147,30 @@ class _AppDrawer extends StatelessWidget {
                 icon: Icons.link,
                 label: t['sideBar']?['addMilkPerson'] ?? 'Connect Cow Person',
                 onTap: () => go('/connect-cow')),
+          ],
+
+          // Milk distributor menus
+          if (isDistributor) ...[
+            _DrawerItem(
+                icon: Icons.edit_calendar,
+                label: 'Daily Entry',
+                onTap: () => go('/dist-daily')),
+            _DrawerItem(
+                icon: Icons.people,
+                label: 'Customers',
+                onTap: () => go('/dist-customers')),
+            _DrawerItem(
+                icon: Icons.account_balance_wallet,
+                label: 'Payment Status',
+                onTap: () => go('/pay-status')),
+          ],
+
+          // Milk consumer menus
+          if (isConsumer) ...[
+            _DrawerItem(
+                icon: Icons.receipt_long,
+                label: 'My Milk Bill',
+                onTap: () => go('/pay-status')),
           ],
 
           // Cow person menus

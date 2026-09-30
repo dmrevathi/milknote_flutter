@@ -242,6 +242,10 @@ class _SignupScreenState extends State<SignupScreen> {
                         value: '3',
                         child:
                             Text(t['signup']?['roleCowman'] ?? 'Cow Person')),
+                    DropdownMenuItem(
+                        value: '4',
+                        child: Text(t['signup']?['roleDistributor'] ??
+                            'Milk Distributor')),
                   ],
                   onChanged: (v) => setState(() => _role = v ?? ''),
                 ),
