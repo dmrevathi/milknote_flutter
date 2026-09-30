@@ -63,7 +63,7 @@ class MonthSwitcher extends StatelessWidget {
 Future<void> shareInvite({
   required String name,
   required String phone,
-  required String password,
+  String? password, // null => account not created by us: no password line
 }) async {
   final prefs = await SharedPreferences.getInstance();
   final dist = prefs.getString('milk_person_name') ?? '';
@@ -72,7 +72,7 @@ Future<void> shareInvite({
       'நான்$who உங்கள் பால் விநியோகஸ்தர். '
       'Milk Note ஆப்-ல் உங்கள் பால் கணக்கைப் பார்க்கலாம்.\n\n'
       '📱 Phone: $phone\n'
-      '🔑 Password: $password\n\n'
+      '${password == null ? '🔑 உங்கள் ஏற்கனவே உள்ள password-ஐ பயன்படுத்தவும்' : '🔑 Password: $password'}\n\n'
       '👉 Download: $kPlayStoreUrl';
   await Share.share(msg, subject: 'Milk Note login');
 }

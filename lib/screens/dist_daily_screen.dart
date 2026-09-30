@@ -23,6 +23,8 @@ class _DistDailyScreenState extends State<DistDailyScreen> {
 
   final Map<int, TextEditingController> _mCtrl = {};
   final Map<int, TextEditingController> _eCtrl = {};
+  final Map<int, TextEditingController> _pCtrl = {}; // payment received now
+  final Map<int, double> _paidToday = {}; // already saved for this date
   final Map<int, String> _origM = {};
   final Map<int, String> _origE = {};
 
@@ -45,8 +47,13 @@ class _DistDailyScreenState extends State<DistDailyScreen> {
     for (final c in _eCtrl.values) {
       c.dispose();
     }
+    for (final c in _pCtrl.values) {
+      c.dispose();
+    }
     _mCtrl.clear();
     _eCtrl.clear();
+    _pCtrl.clear();
+    _paidToday.clear();
     _origM.clear();
     _origE.clear();
   }
@@ -65,6 +72,8 @@ class _DistDailyScreenState extends State<DistDailyScreen> {
         final e = r['evening_qty'] == null ? '' : fmtNum(toD(r['evening_qty']));
         _mCtrl[id] = TextEditingController(text: m);
         _eCtrl[id] = TextEditingController(text: e);
+        _pCtrl[id] = TextEditingController();
+        _paidToday[id] = toD(r['paid_today']);
         _origM[id] = m;
         _origE[id] = e;
       }
@@ -85,7 +94,8 @@ class _DistDailyScreenState extends State<DistDailyScreen> {
   bool get _hasChanges {
     for (final id in _mCtrl.keys) {
       if (_mCtrl[id]!.text.trim() != _origM[id] ||
-          _eCtrl[id]!.text.trim() != _origE[id]) {
+          _eCtrl[id]!.text.trim() != _origE[id] ||
+          _pCtrl[id]!.text.trim().isNotEmpty) {
         return true;
       }
     }
@@ -97,6 +107,16 @@ class _DistDailyScreenState extends State<DistDailyScreen> {
     for (final id in _mCtrl.keys) {
       t += double.tryParse(_mCtrl[id]!.text.trim()) ?? 0;
       t += double.tryParse(_eCtrl[id]!.text.trim()) ?? 0;
+    }
+    return t;
+  }
+
+  /// Money already saved for this date + amounts typed but not saved yet.
+  double get _totalReceived {
+    var t = 0.0;
+    for (final id in _pCtrl.keys) {
+      t += _paidToday[id] ?? 0;
+      t += double.tryParse(_pCtrl[id]!.text.trim()) ?? 0;
     }
     return t;
   }
@@ -174,8 +194,17 @@ class _DistDailyScreenState extends State<DistDailyScreen> {
           return;
         }
       }
-      if (mv != null || ev != null) {
-        jobs.add({'id': id, 'm': mv, 'e': ev});
+      double? pv;
+      final p = _pCtrl[id]!.text.trim();
+      if (p.isNotEmpty) {
+        pv = double.tryParse(p);
+        if (pv == null || pv <= 0 || pv > 9999999) {
+          _snack('Invalid payment for ${r['name']}', error: true);
+          return;
+        }
+      }
+      if (mv != null || ev != null || pv != null) {
+        jobs.add({'id': id, 'm': mv, 'e': ev, 'p': pv});
       }
     }
     if (jobs.isEmpty) {
@@ -187,12 +216,24 @@ class _DistDailyScreenState extends State<DistDailyScreen> {
     try {
       final date = ymd(_date);
       for (final j in jobs) {
-        await DistApi.saveEntry(
-          customerId: j['id'] as int,
-          date: date,
-          morning: j['m'] as double?,
-          evening: j['e'] as double?,
-        );
+        if (j['m'] != null || j['e'] != null) {
+          await DistApi.saveEntry(
+            customerId: j['id'] as int,
+            date: date,
+            morning: j['m'] as double?,
+            evening: j['e'] as double?,
+          );
+        }
+        if (j['p'] != null) {
+          // Counted for the month of the selected date. For an older month,
+          // add the payment from the customer's monthly card instead.
+          await DistApi.addPayment(
+            customerId: j['id'] as int,
+            amount: j['p'] as double,
+            date: date,
+            forMonth: ym(_date),
+          );
+        }
       }
       if (!mounted) return;
       _snack('Saved ${jobs.length} customer${jobs.length == 1 ? '' : 's'}');
@@ -274,10 +315,16 @@ class _DistDailyScreenState extends State<DistDailyScreen> {
               ),
             ],
           ),
-          if (_rows.isNotEmpty)
-            Text('Total: ${fmtNum(_totalLitres)} L',
+          if (_rows.isNotEmpty) ...[
+            Text(
+                'Total: ${fmtNum(_totalLitres)} L  ·  '
+                'Received: ₹${fmtNum(_totalReceived)}',
                 style: const TextStyle(
                     color: kGreen, fontWeight: FontWeight.w700)),
+            Text(
+                'Payments count for ${DateFormat('MMMM yyyy').format(_date)}',
+                style: const TextStyle(fontSize: 11, color: Colors.black54)),
+          ],
         ],
       ),
     );
@@ -328,6 +375,7 @@ class _DistDailyScreenState extends State<DistDailyScreen> {
         final r = _rows[i];
         final id = toInt(r['customer_id']);
         final address = (r['address'] ?? '').toString();
+        final paid = _paidToday[id] ?? 0;
         return Card(
           color: Colors.white,
           child: Padding(
@@ -359,6 +407,23 @@ class _DistDailyScreenState extends State<DistDailyScreen> {
                     Expanded(child: _qtyField(_mCtrl[id]!, 'Morning / காலை')),
                     const SizedBox(width: 12),
                     Expanded(child: _qtyField(_eCtrl[id]!, 'Evening / மாலை')),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                        child: _qtyField(_pCtrl[id]!, 'Payment / வரவு (₹)')),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: paid > 0
+                          ? Text('Received today: ₹${fmtNum(paid)}',
+                              style: const TextStyle(
+                                  fontSize: 12,
+                                  color: kGreen,
+                                  fontWeight: FontWeight.w700))
+                          : const SizedBox.shrink(),
+                    ),
                   ],
                 ),
               ],

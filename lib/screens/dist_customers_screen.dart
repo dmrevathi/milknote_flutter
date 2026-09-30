@@ -86,11 +86,11 @@ class _DistCustomersScreenState extends State<DistCustomersScreen> {
           _load();
         }
         break;
-      case 'address':
-        await _editAddress(c);
+      case 'edit':
+        await _editDetails(c);
         break;
-      case 'reset':
-        await _resetPassword(c);
+      case 'share':
+        await _shareLogin(c);
         break;
       case 'remove':
         await _remove(c);
@@ -98,28 +98,48 @@ class _DistCustomersScreenState extends State<DistCustomersScreen> {
     }
   }
 
-  Future<void> _editAddress(Map<String, dynamic> c) async {
-    final ctrl = TextEditingController(text: (c['address'] ?? '').toString());
+  Future<void> _editDetails(Map<String, dynamic> c) async {
+    final canEditName = c['can_edit_name'] == true;
+    final nameCtrl = TextEditingController(text: c['name'].toString());
+    final addrCtrl =
+        TextEditingController(text: (c['address'] ?? '').toString());
     String? err;
     bool saving = false;
+
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) => AlertDialog(
-          title: const Text('Edit address'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: ctrl,
-                maxLines: 3,
-                maxLength: 255,
-                autofocus: true,
-                decoration: const InputDecoration(labelText: 'Address'),
-              ),
-              if (err != null)
-                Text(err!, style: const TextStyle(color: kRed, fontSize: 13)),
-            ],
+          title: const Text('Edit customer'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameCtrl,
+                  enabled: canEditName,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: InputDecoration(
+                    labelText: 'Name',
+                    helperText: canEditName
+                        ? null
+                        : 'Name can be changed only by the distributor who created this account',
+                    helperMaxLines: 3,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: addrCtrl,
+                  maxLines: 3,
+                  maxLength: 255,
+                  decoration:
+                      const InputDecoration(labelText: 'Address (விலாசம்)'),
+                ),
+                if (err != null)
+                  Text(err!,
+                      style: const TextStyle(color: kRed, fontSize: 13)),
+              ],
+            ),
           ),
           actions: [
             TextButton(
@@ -130,13 +150,21 @@ class _DistCustomersScreenState extends State<DistCustomersScreen> {
               onPressed: saving
                   ? null
                   : () async {
+                      final name = nameCtrl.text.trim();
+                      if (canEditName && name.isEmpty) {
+                        setS(() => err = 'Name is required');
+                        return;
+                      }
                       setS(() {
                         saving = true;
                         err = null;
                       });
                       try {
                         await DistApi.updateCustomer(
-                            toInt(c['customer_id']), ctrl.text.trim());
+                          toInt(c['customer_id']),
+                          name: canEditName ? name : null,
+                          address: addrCtrl.text.trim(),
+                        );
                         if (ctx.mounted) Navigator.pop(ctx, true);
                       } catch (e) {
                         setS(() {
@@ -152,12 +180,23 @@ class _DistCustomersScreenState extends State<DistCustomersScreen> {
       ),
     );
     if (ok == true && mounted) {
-      _snack('Address updated');
+      _snack('Customer updated');
       _load();
     }
   }
 
-  Future<void> _resetPassword(Map<String, dynamic> c) async {
+  /// The old password is stored as a hash and cannot be shown, so for accounts
+  /// this distributor created we set a new password and share it. For any other
+  /// account we only share the phone number and app link.
+  Future<void> _shareLogin(Map<String, dynamic> c) async {
+    final name = c['name'].toString();
+    final phone = c['phone_number'].toString();
+
+    if (c['can_reset_password'] != true) {
+      await shareInvite(name: name, phone: phone);
+      return;
+    }
+
     final ctrl = TextEditingController(text: randomPassword());
     String? err;
     bool saving = false;
@@ -165,17 +204,20 @@ class _DistCustomersScreenState extends State<DistCustomersScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) => AlertDialog(
-          title: const Text('Reset password'),
+          title: const Text('Share login info'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              Text(
+                'The old password is stored securely and cannot be shown. '
+                'Set a new password to send to $name.',
+                style: const TextStyle(fontSize: 13, color: Colors.black54),
+              ),
+              const SizedBox(height: 12),
               TextField(
                 controller: ctrl,
                 decoration: const InputDecoration(labelText: 'New password'),
               ),
-              const SizedBox(height: 6),
-              const Text('Minimum 4 characters.',
-                  style: TextStyle(fontSize: 12, color: Colors.black54)),
               if (err != null)
                 Text(err!, style: const TextStyle(color: kRed, fontSize: 13)),
             ],
@@ -185,13 +227,14 @@ class _DistCustomersScreenState extends State<DistCustomersScreen> {
                 onPressed: saving ? null : () => Navigator.pop(ctx),
                 child:
                     const Text('Cancel', style: TextStyle(color: Colors.grey))),
-            ElevatedButton(
+            ElevatedButton.icon(
               onPressed: saving
                   ? null
                   : () async {
                       final p = ctrl.text.trim();
                       if (p.length < 4) {
-                        setS(() => err = 'Password must be at least 4 characters');
+                        setS(() =>
+                            err = 'Password must be at least 4 characters');
                         return;
                       }
                       setS(() {
@@ -208,38 +251,15 @@ class _DistCustomersScreenState extends State<DistCustomersScreen> {
                         });
                       }
                     },
-              child: const Text('Save'),
+              icon: const Icon(Icons.share),
+              label: const Text('Save & Share'),
             ),
           ],
         ),
       ),
     );
     if (newPass == null || !mounted) return;
-
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Password updated'),
-        content: Text('Send the new login details to ${c['name']}?'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Later', style: TextStyle(color: Colors.grey))),
-          ElevatedButton.icon(
-            onPressed: () {
-              Navigator.pop(ctx);
-              shareInvite(
-                name: c['name'].toString(),
-                phone: c['phone_number'].toString(),
-                password: newPass,
-              );
-            },
-            icon: const Icon(Icons.share),
-            label: const Text('Share'),
-          ),
-        ],
-      ),
-    );
+    await shareInvite(name: name, phone: phone, password: newPass);
   }
 
   Future<void> _remove(Map<String, dynamic> c) async {
@@ -340,7 +360,6 @@ class _DistCustomersScreenState extends State<DistCustomersScreen> {
           final price = c['current_price'] == null
               ? '—'
               : '₹${fmtNum(toD(c['current_price']))}/L';
-          final canReset = c['can_reset_password'] == true;
           return Card(
             color: Colors.white,
             child: ListTile(
@@ -358,10 +377,9 @@ class _DistCustomersScreenState extends State<DistCustomersScreen> {
                   const PopupMenuItem(
                       value: 'price', child: Text('Change price')),
                   const PopupMenuItem(
-                      value: 'address', child: Text('Edit address')),
-                  if (canReset)
-                    const PopupMenuItem(
-                        value: 'reset', child: Text('Reset password')),
+                      value: 'edit', child: Text('Edit name & address')),
+                  const PopupMenuItem(
+                      value: 'share', child: Text('Share login info')),
                   const PopupMenuItem(value: 'remove', child: Text('Remove')),
                 ],
               ),

@@ -55,7 +55,12 @@ class DistApi {
       throw Exception(data['error'].toString());
     }
     if (response.statusCode != 200 || data == null) {
-      throw Exception('Server error: ${response.statusCode}');
+      // Not JSON: show the start of what the server really sent, so the
+      // real cause (PHP error text, HTML page, ...) is visible.
+      final snippet = response.body.replaceAll(RegExp(r'\s+'), ' ').trim();
+      final shown = snippet.length > 160 ? '${snippet.substring(0, 160)}…' : snippet;
+      throw Exception(
+          'Server error: ${response.statusCode}${shown.isEmpty ? ' (empty response)' : ' – $shown'}');
     }
     return data;
   }
@@ -86,11 +91,15 @@ class DistApi {
         .toList();
   }
 
-  static Future<void> updateCustomer(int customerId, String address) =>
+  /// Pass only what should change. `name` is allowed only for accounts the
+  /// distributor created (the server enforces this).
+  static Future<void> updateCustomer(int customerId,
+          {String? name, String? address}) =>
       _post({
         'action': 'update_customer',
         'customer_id': customerId,
-        'address': address,
+        if (name != null) 'name': name,
+        if (address != null) 'address': address,
       });
 
   static Future<void> removeCustomer(int customerId) =>
